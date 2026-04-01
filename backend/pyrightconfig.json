@@ -1,0 +1,12 @@
+{
+  "typeCheckingMode": "basic",
+  "pythonVersion": "3.11",
+  "pythonPlatform": "Windows",
+  "include": ["ats_backend", "clean_embeddings.py"],
+  "exclude": [".venv", "**/__pycache__"],
+  "stubPath": "",
+  "venvPath": ".venv",
+  "extraPaths": ["ats_backend"],
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": false
+}
