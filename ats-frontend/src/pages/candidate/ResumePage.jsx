@@ -148,18 +148,18 @@ const ResumePage = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">My Resume</h1>
+        <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">My Resume</h1>
         <p className="mt-1 text-gray-500">Upload, view, and verify the resume that recruiters will see.</p>
       </div>
 
       <div className="surface-panel p-5 sm:p-6">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-slate-900">Saved Resumes</h2>
             <p className="mt-1 text-sm text-slate-500">Your latest resume is now visible directly in the frontend.</p>
           </div>
           {selectedResume?.resume_url && (
-            <button type="button" onClick={handleOpenResume} className="btn-secondary" disabled={openingResume}>
+            <button type="button" onClick={handleOpenResume} className="btn-secondary w-full justify-center sm:w-auto" disabled={openingResume}>
               <ExternalLink size={14} /> Open In New Tab
             </button>
           )}
@@ -187,8 +187,10 @@ const ResumePage = () => {
                       : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
                   }`}
                 >
-                  {resume.file_name}
-                  {resume.is_primary ? ' (Primary)' : ''}
+                  <span className="block max-w-[14rem] truncate sm:max-w-[18rem]">
+                    {resume.file_name}
+                    {resume.is_primary ? ' (Primary)' : ''}
+                  </span>
                 </button>
               ))}
             </div>
@@ -197,14 +199,14 @@ const ResumePage = () => {
               <div className="space-y-4">
                 <div className="grid gap-4 lg:grid-cols-[1.8fr_1fr]">
                   <div className="rounded-[28px] border border-slate-200 bg-white p-4">
-                    <div className="mb-3 flex items-start justify-between gap-3">
-                      <div>
+                    <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
                         <p className="text-lg font-semibold text-slate-900">{selectedResume.file_name}</p>
                         <p className="mt-1 text-sm text-slate-500">
                           {formatFileSize(selectedResume.file_size)} • {selectedResume.parsing_status || 'processed'}
                         </p>
                       </div>
-                      <span className={`badge ${selectedResume.is_primary ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>
+                      <span className={`badge w-fit ${selectedResume.is_primary ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>
                         {selectedResume.is_primary ? 'Primary Resume' : 'Saved Resume'}
                       </span>
                     </div>
@@ -213,10 +215,10 @@ const ResumePage = () => {
                       <iframe
                         title={selectedResume.file_name}
                         src={previewUrl}
-                        className="h-[680px] w-full rounded-2xl border border-slate-200"
+                        className="h-[320px] w-full rounded-2xl border border-slate-200 sm:h-[520px] lg:h-[680px]"
                       />
                     ) : selectedResume.raw_text ? (
-                      <div className="h-[680px] overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <div className="h-[320px] overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:h-[520px] lg:h-[680px]">
                         <div className="mb-3 flex items-center gap-2 text-sm font-medium text-slate-700">
                           <Eye size={15} className="text-indigo-500" />
                           Extracted Resume Text Preview
@@ -258,7 +260,7 @@ const ResumePage = () => {
                         <p className="text-sm font-semibold text-slate-900">Projects</p>
                         <div className="mt-3 space-y-2 text-sm text-slate-600">
                           {selectedResume.projects.map((project) => (
-                            <p key={project}>• {project}</p>
+                            <p key={project} className="break-words">• {project}</p>
                           ))}
                         </div>
                       </div>
@@ -283,7 +285,7 @@ const ResumePage = () => {
           onDrop={handleDrop}
           onClick={() => !file && inputRef.current?.click()}
           className={`
-            border-2 border-dashed rounded-2xl p-10 text-center transition-all
+            rounded-2xl border-2 border-dashed p-6 text-center transition-all sm:p-10
             ${dragOver ? 'border-blue-400 bg-blue-50' : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'}
             ${!file ? 'cursor-pointer' : ''}
           `}
@@ -303,8 +305,8 @@ const ResumePage = () => {
               <p className="mt-1 text-sm text-gray-400">PDF or DOCX • Max 5MB</p>
             </>
           ) : (
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 shrink-0">
+            <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-100">
                 <FileText size={22} className="text-blue-600" />
               </div>
               <div className="flex-1 text-left">
@@ -312,7 +314,7 @@ const ResumePage = () => {
                 <p className="text-xs text-gray-400">{formatFileSize(file.size)}</p>
               </div>
               {status === 'idle' && (
-                <button onClick={(event) => { event.stopPropagation(); reset(); }} className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500">
+                <button onClick={(event) => { event.stopPropagation(); reset(); }} className="self-end rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 sm:self-auto">
                   <X size={16} />
                 </button>
               )}

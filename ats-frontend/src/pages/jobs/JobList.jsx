@@ -8,9 +8,9 @@ import { PageLoader } from '../../components/ui/Spinner';
 const JobCard = ({ job }) => (
   <Link
     to={`/jobs/${job.id}`}
-    className="card hover:shadow-card-lg hover:-translate-y-0.5 transition-all duration-200 block group"
+    className="group block card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-lg"
   >
-    <div className="flex items-start justify-between gap-4">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div className="flex-1 min-w-0">
         {/* Title + company */}
         <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors truncate">
@@ -55,7 +55,7 @@ const JobCard = ({ job }) => (
         )}
       </div>
 
-      <div className="flex flex-col items-end gap-2 shrink-0">
+      <div className="flex shrink-0 items-center justify-between gap-2 sm:flex-col sm:items-end sm:justify-start">
         {job.type && (
           <span className={`badge text-[11px] font-semibold ${jobTypeBadge(job.type)}`}>
             {job.type}
@@ -81,7 +81,7 @@ const JobList = () => {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Browse Jobs</h1>
+        <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Browse Jobs</h1>
         <p className="text-gray-500 mt-1">{jobs.length} opportunities available</p>
       </div>
 
@@ -108,7 +108,7 @@ const JobList = () => {
               onChange={(e) => setFilters((p) => ({ ...p, location: e.target.value }))}
             />
           </div>
-          <button type="submit" className="btn-primary shrink-0">
+          <button type="submit" className="btn-primary w-full justify-center shrink-0 sm:w-auto">
             <SlidersHorizontal size={15} /> Filter
           </button>
         </div>

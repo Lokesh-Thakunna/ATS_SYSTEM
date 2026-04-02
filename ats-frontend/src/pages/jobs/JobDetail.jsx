@@ -206,7 +206,7 @@ const ApplyModal = ({ open, onClose, jobId, jobTitle }) => {
           </div>
         </div>
 
-        <div className="flex gap-3 border-t border-slate-100 pt-2">
+        <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-2 sm:flex-row">
           <button type="submit" disabled={loading || profileLoading} className="btn-primary flex-1 justify-center">
             {loading ? <Spinner size="sm" /> : <><Send size={15} /> Submit Application</>}
           </button>
@@ -242,9 +242,9 @@ const JobDetail = () => {
       </Link>
 
       <div className="surface-panel space-y-6 p-6">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">{job.title}</h1>
+            <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">{job.title}</h1>
             <p className="mt-1 text-slate-500">{job.company}</p>
           </div>
           {job.type && (

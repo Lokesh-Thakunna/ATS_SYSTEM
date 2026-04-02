@@ -127,13 +127,13 @@ const CandidateDashboard = () => {
     <>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Welcome back, {names.first}! <span className="font-sans">👋</span></h1>
+          <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">Welcome back, {names.first}!</h1>
           <p className="mt-1 text-sm text-slate-500">Here's a snapshot of your job search activity.</p>
         </div>
 
         <div className="surface-panel overflow-hidden">
-          <div className="flex flex-col gap-6 px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex flex-1 items-start gap-4">
+          <div className="flex flex-col gap-6 px-5 py-5 sm:px-6 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex flex-1 flex-col items-start gap-4 sm:flex-row">
               <div className="flex h-16 w-16 items-center justify-center rounded-full border border-indigo-100 bg-indigo-50 text-2xl font-semibold text-indigo-600">
                 {names.first[0]?.toUpperCase()}
               </div>
@@ -151,7 +151,7 @@ const CandidateDashboard = () => {
               </div>
             </div>
 
-            <div className="flex min-w-[240px] flex-col gap-3">
+            <div className="flex w-full flex-col gap-3 xl:max-w-xs">
               <div className="flex items-center justify-between text-sm font-medium text-slate-600">
                 <span>Profile Strength</span>
                 <span className="text-indigo-600">{profileStrength}%</span>
@@ -162,11 +162,11 @@ const CandidateDashboard = () => {
                   style={{ width: `${profileStrength}%` }}
                 />
               </div>
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <Link to="/applications" className="text-sm font-medium text-indigo-600 hover:text-indigo-700">
-                  View all →
+                  View all {'->'}
                 </Link>
-                <button type="button" onClick={openProfileModal} className="btn-secondary">
+                <button type="button" onClick={openProfileModal} className="btn-secondary justify-center sm:justify-start">
                   <Pencil size={14} /> Edit Profile
                 </button>
               </div>
@@ -183,9 +183,9 @@ const CandidateDashboard = () => {
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-lg font-semibold text-slate-900">Recent Applications</h2>
-            <Link to="/applications" className="btn-secondary px-3 py-2 text-xs">View all</Link>
+            <Link to="/applications" className="btn-secondary w-full justify-center px-3 py-2 text-xs sm:w-auto">View all</Link>
           </div>
 
           {recentApplications.length === 0 ? (

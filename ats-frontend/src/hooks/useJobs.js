@@ -1,8 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { jobsService } from '../services/jobsService';
 import toast from 'react-hot-toast';
 
 export const useJobs = (params = {}) => {
+  const serializedParams = JSON.stringify(params);
+  const stableParams = useMemo(() => JSON.parse(serializedParams), [serializedParams]);
   const [jobs, setJobs]       = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
@@ -11,14 +13,14 @@ export const useJobs = (params = {}) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await jobsService.getJobs(params);
+      const data = await jobsService.getJobs(stableParams);
       setJobs(Array.isArray(data) ? data : data.results || []);
     } catch (err) {
       setError(err.message || 'Failed to load jobs');
     } finally {
       setLoading(false);
     }
-  }, [JSON.stringify(params)]);
+  }, [stableParams]);
 
   useEffect(() => { fetchJobs(); }, [fetchJobs]);
 
@@ -27,17 +29,33 @@ export const useJobs = (params = {}) => {
 
 export const useJob = (id) => {
   const [job, setJob]         = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Boolean(id));
   const [error, setError]     = useState(null);
 
-  useEffect(() => {
-    if (!id) return;
+  const fetchJob = useCallback(async () => {
+    if (!id) {
+      setJob(null);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
-    jobsService.getJob(id)
-      .then(setJob)
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+    setError(null);
+
+    try {
+      const nextJob = await jobsService.getJob(id);
+      setJob(nextJob);
+    } catch (err) {
+      setError(err.message || 'Failed to load job');
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
+
+  useEffect(() => {
+    void fetchJob();
+  }, [fetchJob]);
 
   return { job, loading, error };
 };

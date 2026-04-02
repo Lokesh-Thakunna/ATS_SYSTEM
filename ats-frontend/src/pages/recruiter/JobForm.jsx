@@ -46,7 +46,9 @@ const JobForm = ({ job, onSuccess }) => {
       if (isEdit) await updateJob(job.id, payload);
       else        await createJob(payload);
       onSuccess?.();
-    } catch {}
+    } catch {
+      // Mutation hooks already surface errors to the user.
+    }
   };
 
   const inputCls = (k) => `input ${errors[k] ? 'border-red-300 focus:ring-red-400' : ''}`;
@@ -78,7 +80,7 @@ const JobForm = ({ job, onSuccess }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label className="label">Min Salary</label>
           <input type="number" placeholder="e.g. 60000" className="input" value={form.salary_min} onChange={set('salary_min')} />
@@ -105,8 +107,8 @@ const JobForm = ({ job, onSuccess }) => {
         <textarea rows={3} placeholder="Education, experience, certifications…" className="input resize-none" value={form.requirements} onChange={set('requirements')} />
       </div>
 
-      <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
-        <button type="submit" disabled={saving} className="btn-primary px-6">
+      <div className="flex justify-stretch gap-3 border-t border-gray-100 pt-2 sm:justify-end">
+        <button type="submit" disabled={saving} className="btn-primary w-full justify-center px-6 sm:w-auto">
           {saving ? <Spinner size="sm" /> : isEdit ? 'Save Changes' : 'Post Job'}
         </button>
       </div>

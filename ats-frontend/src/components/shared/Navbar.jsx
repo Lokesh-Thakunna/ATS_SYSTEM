@@ -30,8 +30,8 @@ const Navbar = ({ onMenuToggle, menuOpen }) => {
     : '?';
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 h-16 border-b border-slate-200/80 bg-white/95 px-4 backdrop-blur">
-      <div className="mx-auto flex h-full max-w-[1600px] items-center justify-between gap-4 pl-12 lg:pl-0">
+    <header className="fixed left-0 right-0 top-0 z-40 h-16 border-b border-slate-200/80 bg-white/95 px-3 backdrop-blur sm:px-4">
+      <div className="mx-auto flex h-full max-w-[1600px] min-w-0 items-center justify-between gap-3 pl-10 sm:gap-4 sm:pl-12 lg:pl-0">
         <button
           onClick={onMenuToggle}
           className="absolute left-4 top-1/2 -translate-y-1/2 rounded-xl p-2 text-slate-500 transition-colors hover:bg-slate-100 lg:hidden"
@@ -40,22 +40,22 @@ const Navbar = ({ onMenuToggle, menuOpen }) => {
           {menuOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
 
-        <Link to="/dashboard" className="flex items-center gap-2">
-          <span className="text-xl font-extrabold tracking-tight text-slate-900" style={{ fontFamily: 'Syne, sans-serif' }}>
+        <Link to="/dashboard" className="min-w-0 flex-1 text-center lg:flex-none lg:text-left">
+          <span className="block truncate text-base font-extrabold tracking-tight text-slate-900 sm:text-xl" style={{ fontFamily: 'Syne, sans-serif' }}>
             ATS<span className="text-indigo-600">SYSTEM</span>
           </span>
         </Link>
 
-        <div className="relative flex items-center gap-3" ref={dropRef}>
+        <div className="relative flex shrink-0 items-center gap-2 sm:gap-3" ref={dropRef}>
           <button
             onClick={() => setDropOpen((current) => !current)}
-            className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-2 py-1.5 transition-colors hover:bg-slate-100"
+            className="flex max-w-[10.5rem] items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-2 py-1.5 transition-colors hover:bg-slate-100 sm:max-w-none sm:gap-3"
           >
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-100 text-xs font-bold text-indigo-700">
               {initials}
             </div>
-            <div className="hidden text-left sm:block">
-              <p className="text-sm font-semibold leading-none text-slate-800">
+            <div className="hidden min-w-0 text-left sm:block">
+              <p className="truncate text-sm font-semibold leading-none text-slate-800">
                 {user?.first_name || user?.email?.split('@')[0] || 'User'}
               </p>
               <span className={`mt-1 inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-medium ${roleLabel.cls}`}>
@@ -74,7 +74,7 @@ const Navbar = ({ onMenuToggle, menuOpen }) => {
           </button>
 
           {dropOpen && (
-            <div className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
+            <div className="absolute right-0 top-full z-50 mt-2 w-[min(14rem,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
               <div className="border-b border-slate-100 px-4 py-3">
                 <p className="text-xs text-slate-500">Signed in as</p>
                 <p className="truncate text-sm font-semibold text-slate-800">{user?.email}</p>

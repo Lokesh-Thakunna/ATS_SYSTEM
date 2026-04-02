@@ -33,9 +33,27 @@ export const getAuthenticatedResumeBlobUrl = async (resumeUrl, { forceRefresh = 
 };
 
 export const openAuthenticatedResume = async (resumeUrl) => {
-  const blobUrl = await getAuthenticatedResumeBlobUrl(resumeUrl);
-  window.open(blobUrl, '_blank', 'noopener,noreferrer');
-  return blobUrl;
+  const popup = window.open('', '_blank', 'noopener,noreferrer');
+
+  try {
+    if (popup) {
+      popup.document.write('<title>Opening resume...</title><p style="font-family: sans-serif; padding: 16px;">Loading resume...</p>');
+      popup.document.close();
+    }
+
+    const blobUrl = await getAuthenticatedResumeBlobUrl(resumeUrl, { forceRefresh: true });
+
+    if (popup) {
+      popup.location.replace(blobUrl);
+    } else {
+      window.open(blobUrl, '_blank', 'noopener,noreferrer');
+    }
+
+    return blobUrl;
+  } catch (error) {
+    popup?.close();
+    throw error;
+  }
 };
 
 export const clearAuthenticatedResumeBlob = (resumeUrl) => {

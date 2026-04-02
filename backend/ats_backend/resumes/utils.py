@@ -1,9 +1,10 @@
+from io import BytesIO
 from pathlib import Path
 
 from django.http import FileResponse
-from django.shortcuts import redirect
 from django.urls import reverse
 
+from ats_backend.utils.supabase_client import supabase
 from jobs.models import JobApplication
 
 
@@ -59,8 +60,15 @@ def build_resume_file_response(resume):
             as_attachment=False,
         )
 
-    if resume.cloud_url:
-        return redirect(resume.cloud_url)
+    if resume.storage_backend == resume.StorageBackend.SUPABASE and resume.storage_path:
+        file_bytes = supabase.storage.from_("Candidate_resume").download(resume.storage_path)
+        if file_bytes:
+            return FileResponse(
+                BytesIO(file_bytes),
+                content_type=resume.mime_type or "application/octet-stream",
+                filename=resume.file_name,
+                as_attachment=False,
+            )
 
     if resume.storage_path:
         file_path = Path(resume.storage_path)

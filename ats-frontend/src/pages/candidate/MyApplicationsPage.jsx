@@ -56,17 +56,17 @@ const MyApplicationsPage = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900">My Applications</h1>
+        <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">My Applications</h1>
         <p className="mt-1 text-sm text-slate-500">Filter, track, and manage all your submitted applications.</p>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex gap-2 overflow-x-auto pb-1 sm:flex-wrap">
         {FILTERS.map((filter) => (
           <button
             key={filter.key}
             type="button"
             onClick={() => setActiveFilter(filter.key)}
-            className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+            className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
               activeFilter === filter.key
                 ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
                 : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'

@@ -44,7 +44,7 @@ const Login = () => {
     <div>
       {/* Heading */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Sign in</h1>
+        <h1 className="mb-2 text-3xl font-bold text-gray-900 sm:text-4xl">Sign in</h1>
         <p className="text-gray-500">Access your ATSSYSTEM account</p>
       </div>
 

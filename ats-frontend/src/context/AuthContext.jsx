@@ -8,13 +8,12 @@ export const AuthProvider = ({ children }) => {
     try {
       const stored = localStorage.getItem('ats_user');
       if (stored) return JSON.parse(stored);
-    } catch (err) {
+    } catch {
       // ignore
     }
     return null;
   });
   const [token, setToken] = useState(() => localStorage.getItem('ats_token') || null);
-  const [loading, setLoading] = useState(false);
 
   const logout = useCallback(() => {
     localStorage.removeItem('ats_token');
@@ -59,12 +58,13 @@ export const AuthProvider = ({ children }) => {
   const isRole = (role) => user?.role === role;
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout, register, updateUser, isRole }}>
+    <AuthContext.Provider value={{ user, token, login, logout, register, updateUser, isRole }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');

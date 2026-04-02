@@ -38,27 +38,31 @@ const adminNav = [
 
 const navByRole = { recruiter: recruiterNav, admin: adminNav };
 
-const NavItem = ({ to, icon: Icon, label, onClick }) => (
-  <NavLink
-    to={to}
-    onClick={onClick}
-    className={({ isActive }) =>
-      `flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium transition-all group ${
-        isActive
-          ? 'bg-indigo-50 text-indigo-700 shadow-sm'
-          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-      }`
-    }
-  >
-    {({ isActive }) => (
-      <>
-        <Icon size={17} className={isActive ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'} />
-        <span className="flex-1">{label}</span>
-        {isActive && <ChevronRight size={14} className="text-indigo-400" />}
-      </>
-    )}
-  </NavLink>
-);
+const NavItem = ({ to, icon, label, onClick }) => {
+  const Icon = icon;
+
+  return (
+    <NavLink
+      to={to}
+      onClick={onClick}
+      className={({ isActive }) =>
+        `flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium transition-all group ${
+          isActive
+            ? 'bg-indigo-50 text-indigo-700 shadow-sm'
+            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+        }`
+      }
+    >
+      {({ isActive }) => (
+        <>
+          <Icon size={17} className={isActive ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'} />
+          <span className="flex-1">{label}</span>
+          {isActive && <ChevronRight size={14} className="text-indigo-400" />}
+        </>
+      )}
+    </NavLink>
+  );
+};
 
 const Sidebar = ({ open, onClose }) => {
   const { user, logout } = useAuth();
@@ -76,13 +80,13 @@ const Sidebar = ({ open, onClose }) => {
 
       <aside
         className={`
-          fixed left-0 top-16 bottom-0 z-30 w-72 border-r border-slate-200/80 bg-white/95
-          flex flex-col transition-transform duration-300
+          fixed bottom-0 left-0 top-16 z-30 flex w-[min(88vw,20rem)] flex-col border-r border-slate-200/80 bg-white/95
+          shadow-xl transition-transform duration-300 lg:shadow-none
           ${open ? 'translate-x-0' : '-translate-x-full'}
-          lg:translate-x-0
+          lg:w-72 lg:translate-x-0
         `}
       >
-        <div className="flex-1 overflow-y-auto px-4 py-5">
+        <div className="flex-1 overflow-y-auto px-4 py-5 pb-6">
           <div className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm">
             <p className="text-xl font-extrabold text-slate-900" style={{ fontFamily: 'Syne, sans-serif' }}>
               ATS<span className="text-indigo-600">SYSTEM</span>

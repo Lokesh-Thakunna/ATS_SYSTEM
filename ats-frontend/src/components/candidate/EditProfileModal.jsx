@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Modal from '../ui/Modal';
 
 const splitFullName = (fullName = '') => {
@@ -9,25 +9,21 @@ const splitFullName = (fullName = '') => {
   };
 };
 
-const EditProfileModal = ({ open, profile, saving, onClose, onSave }) => {
-  const initialForm = useMemo(() => {
-    const { first_name, last_name } = splitFullName(profile?.full_name);
-    return {
-      first_name,
-      last_name,
-      email: profile?.email || '',
-      phone: profile?.phone || '',
-      summary: profile?.summary || '',
-    };
-  }, [profile]);
+const buildInitialForm = (profile) => {
+  const { first_name, last_name } = splitFullName(profile?.full_name);
 
+  return {
+    first_name,
+    last_name,
+    email: profile?.email || '',
+    phone: profile?.phone || '',
+    summary: profile?.summary || '',
+  };
+};
+
+const EditProfileForm = ({ profile, saving, onClose, onSave }) => {
+  const initialForm = useMemo(() => buildInitialForm(profile), [profile]);
   const [form, setForm] = useState(initialForm);
-
-  useEffect(() => {
-    if (open) {
-      setForm(initialForm);
-    }
-  }, [initialForm, open]);
 
   const setField = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }));
 
@@ -41,7 +37,7 @@ const EditProfileModal = ({ open, profile, saving, onClose, onSave }) => {
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Edit Profile" size="md">
+    <>
       <p className="mb-5 text-sm text-slate-500">Keep your profile up to date to improve your match rate.</p>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
@@ -76,7 +72,7 @@ const EditProfileModal = ({ open, profile, saving, onClose, onSave }) => {
           />
         </div>
 
-        <div className="flex gap-3 pt-2">
+        <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row">
           <button type="submit" disabled={saving} className="btn-primary flex-1 justify-center">
             {saving ? 'Saving...' : 'Save Changes'}
           </button>
@@ -85,8 +81,22 @@ const EditProfileModal = ({ open, profile, saving, onClose, onSave }) => {
           </button>
         </div>
       </form>
-    </Modal>
+    </>
   );
 };
+
+const EditProfileModal = ({ open, profile, saving, onClose, onSave }) => (
+  <Modal open={open} onClose={onClose} title="Edit Profile" size="md">
+    {open && (
+      <EditProfileForm
+        key={`${profile?.id || profile?.email || 'profile'}-${open ? 'open' : 'closed'}`}
+        profile={profile}
+        saving={saving}
+        onClose={onClose}
+        onSave={onSave}
+      />
+    )}
+  </Modal>
+);
 
 export default EditProfileModal;

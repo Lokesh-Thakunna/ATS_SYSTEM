@@ -10,7 +10,6 @@ const BASE_URL = configuredApiBaseUrl
   : DEFAULT_API_URL;
 
 if (!import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_BASE_URL === 'https://api.yourdomain.com') {
-  // eslint-disable-next-line no-console
   console.warn('[API] VITE_API_BASE_URL not configured; using fallback', BASE_URL);
 }
 

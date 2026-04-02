@@ -108,17 +108,19 @@ const ApplicationStatusCard = ({ application, resumeUrl, onReapply }) => {
         </div>
 
         <div className="rounded-3xl border border-slate-100 bg-slate-50/70 p-4">
-          <div className="relative flex items-start justify-between gap-2">
-            <ProgressLine total={meta.stages.length} accentClass={meta.accent} activeStage={meta.activeStage} />
-            {meta.stages.map((stage, index) => (
-              <ProgressNode
-                key={stage}
-                label={stage}
-                active={index === meta.activeStage}
-                completed={index < meta.activeStage}
-                accent={meta.accent}
-              />
-            ))}
+          <div className="-mx-1 overflow-x-auto px-1">
+            <div className="relative flex min-w-[320px] items-start justify-between gap-2 sm:min-w-0">
+              <ProgressLine total={meta.stages.length} accentClass={meta.accent} activeStage={meta.activeStage} />
+              {meta.stages.map((stage, index) => (
+                <ProgressNode
+                  key={stage}
+                  label={stage}
+                  active={index === meta.activeStage}
+                  completed={index < meta.activeStage}
+                  accent={meta.accent}
+                />
+              ))}
+            </div>
           </div>
         </div>
 

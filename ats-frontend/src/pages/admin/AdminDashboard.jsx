@@ -68,12 +68,12 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Admin Panel</h1>
+          <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">Admin Panel</h1>
           <p className="mt-1 text-slate-500">Manage all active recruiter accounts.</p>
         </div>
-        <button onClick={() => setCreateOpen(true)} className="btn-primary">
+        <button onClick={() => setCreateOpen(true)} className="btn-primary w-full justify-center sm:w-auto">
           <PlusCircle size={16} /> Add Recruiter
         </button>
       </div>
@@ -100,24 +100,24 @@ const AdminDashboard = () => {
       </div>
 
       <div className="surface-panel overflow-hidden">
-        <div className="border-b border-slate-100 px-6 py-4">
+        <div className="border-b border-slate-100 px-4 py-4 sm:px-6">
           <h2 className="font-semibold text-slate-900">Active Recruiters</h2>
           <p className="mt-1 text-sm text-slate-500">All currently active recruiter accounts are listed here.</p>
         </div>
 
         {loading ? (
-          <div className="flex justify-center px-6 py-12">
+          <div className="flex justify-center px-4 py-12 sm:px-6">
             <Spinner size="md" />
           </div>
         ) : recruiters.length === 0 ? (
-          <div className="px-6 py-12 text-center">
+          <div className="px-4 py-12 text-center sm:px-6">
             <p className="font-medium text-slate-700">No active recruiters found</p>
             <p className="mt-1 text-sm text-slate-500">Create a recruiter account to get started.</p>
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
             {recruiters.map((recruiter) => (
-              <div key={recruiter.id} className="flex flex-col gap-4 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
+              <div key={recruiter.id} className="flex flex-col gap-4 px-4 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-3">
                     <h3 className="text-lg font-semibold text-slate-900">{recruiter.full_name}</h3>
@@ -133,12 +133,12 @@ const AdminDashboard = () => {
                   <p className="text-xs text-slate-400">Recruiter ID: {recruiter.id}</p>
                 </div>
 
-                <div>
+                <div className="w-full lg:w-auto">
                   <button
                     type="button"
                     onClick={() => handleDeactivate(recruiter.id)}
                     disabled={deactivatingId === recruiter.id}
-                    className="btn-danger border-red-200 bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                    className="btn-danger w-full justify-center border-red-200 bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 lg:w-auto"
                   >
                     {deactivatingId === recruiter.id ? <Spinner size="sm" /> : <><UserX size={15} /> Deactivate</>}
                   </button>
@@ -151,7 +151,7 @@ const AdminDashboard = () => {
 
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Create Recruiter Account" size="sm">
         <form onSubmit={handleCreate} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="label">First Name</label>
               <input type="text" className="input" value={form.first_name} onChange={set('first_name')} placeholder="Jane" />
@@ -177,7 +177,7 @@ const AdminDashboard = () => {
             <AlertCircle size={14} className="shrink-0" />
             Share this temporary password securely with the recruiter.
           </div>
-          <div className="flex gap-3 pt-2">
+          <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row">
             <button type="button" onClick={() => setCreateOpen(false)} className="btn-secondary flex-1 justify-center">Cancel</button>
             <button type="submit" disabled={submitting} className="btn-primary flex-1 justify-center">
               {submitting ? <Spinner size="sm" /> : 'Create Account'}

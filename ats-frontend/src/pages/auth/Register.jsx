@@ -55,14 +55,14 @@ const Register = () => {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Create account</h1>
+        <h1 className="mb-2 text-3xl font-bold text-gray-900 sm:text-4xl">Create account</h1>
         <p className="text-gray-500">Start your job search journey today</p>
       </div>
 
       <div className="card shadow-card-lg">
         <form onSubmit={handleSubmit} noValidate className="space-y-4">
           {/* Name row */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label className="label">First name</label>
               <div className="relative">

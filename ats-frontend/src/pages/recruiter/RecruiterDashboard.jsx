@@ -8,6 +8,44 @@ import { PageLoader } from '../../components/ui/Spinner';
 import Modal from '../../components/ui/Modal';
 import JobForm from './JobForm';
 
+const MobileJobCard = ({ job, onEdit, onDelete }) => (
+  <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="flex flex-col gap-3">
+      <div>
+        <p className="font-semibold text-slate-900">{job.title}</p>
+        <p className="mt-1 text-sm text-slate-500">{job.company || 'Company'}</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 text-sm text-slate-500">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Location</p>
+          <p className="mt-1">{job.location || '-'}</p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Applicants</p>
+          <p className="mt-1">{job.applicant_count || 0}</p>
+        </div>
+        <div className="col-span-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Posted</p>
+          <p className="mt-1">{timeAgo(job.created_at)}</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        <Link to={`/jobs/${job.id}`} className="btn-secondary justify-center px-3">
+          <Eye size={15} /> View
+        </Link>
+        <button onClick={() => onEdit(job)} className="btn-secondary justify-center px-3">
+          <Edit2 size={15} /> Edit
+        </button>
+        <button onClick={() => onDelete(job.id)} className="btn-danger justify-center border-red-200 bg-red-600 px-3 text-white hover:bg-red-700">
+          <Trash2 size={15} /> Delete
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
 const RecruiterDashboard = () => {
   const { deleteJob, saving } = useJobMutations();
   const [jobs, setJobs] = useState([]);
@@ -45,19 +83,21 @@ const RecruiterDashboard = () => {
       await deleteJob(deleteId);
       setDeleteId(null);
       await loadJobs();
-    } catch {}
+    } catch {
+      // Deletion errors are already handled in the mutation hook.
+    }
   };
 
   if (loading) return <PageLoader />;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Recruiter Dashboard</h1>
+          <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">Recruiter Dashboard</h1>
           <p className="mt-1 text-slate-500">Manage only the jobs you have posted.</p>
         </div>
-        <button onClick={() => setCreateOpen(true)} className="btn-primary">
+        <button onClick={() => setCreateOpen(true)} className="btn-primary w-full justify-center sm:w-auto">
           <PlusCircle size={16} /> Post a Job
         </button>
       </div>
@@ -92,7 +132,7 @@ const RecruiterDashboard = () => {
 
       {!error && (
         <div className="surface-panel overflow-hidden">
-          <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+          <div className="flex flex-col gap-2 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <h2 className="font-semibold text-slate-900">My Job Postings</h2>
             <Link to="/recruiter/applicants" className="text-sm font-medium text-indigo-600 hover:text-indigo-700">
               View applicants
@@ -105,7 +145,19 @@ const RecruiterDashboard = () => {
               <button onClick={() => setCreateOpen(true)} className="btn-primary">Post Your First Job</button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+              <div className="space-y-3 p-4 md:hidden">
+                {jobs.map((job) => (
+                  <MobileJobCard
+                    key={job.id}
+                    job={job}
+                    onEdit={setEditJob}
+                    onDelete={setDeleteId}
+                  />
+                ))}
+              </div>
+
+              <div className="hidden overflow-x-auto md:block">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50">
@@ -143,7 +195,8 @@ const RecruiterDashboard = () => {
                   ))}
                 </tbody>
               </table>
-            </div>
+              </div>
+            </>
           )}
         </div>
       )}
@@ -162,7 +215,7 @@ const RecruiterDashboard = () => {
             <AlertCircle size={18} className="mt-0.5 shrink-0 text-red-500" />
             <p className="text-sm text-red-700">This action cannot be undone. This job and its applications will be removed.</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row">
             <button onClick={() => setDeleteId(null)} className="btn-secondary flex-1 justify-center">Cancel</button>
             <button onClick={handleDelete} disabled={saving} className="btn-danger flex-1 justify-center border-red-200 bg-red-600 text-white hover:bg-red-700">
               Delete Job

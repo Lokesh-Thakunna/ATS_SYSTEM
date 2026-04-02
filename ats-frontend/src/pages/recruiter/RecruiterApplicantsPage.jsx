@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Award, BriefcaseBusiness, FileText, Gauge, Mail, Phone, RefreshCcw, Sparkles, Target, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { jobsService } from '../../services/jobsService';
@@ -72,7 +72,7 @@ const RecruiterApplicantsPage = () => {
     }
   };
 
-  const loadRanking = async (jobId, requestedTop = topN) => {
+  const loadRanking = useCallback(async (jobId, requestedTop = topN) => {
     if (!jobId) {
       setRanking({ job: null, total_applicants: 0, matches: [] });
       return;
@@ -88,7 +88,7 @@ const RecruiterApplicantsPage = () => {
     } finally {
       setRankingLoading(false);
     }
-  };
+  }, [topN]);
 
   useEffect(() => {
     loadJobs();
@@ -97,7 +97,7 @@ const RecruiterApplicantsPage = () => {
   useEffect(() => {
     if (!selectedJobId) return;
     loadRanking(selectedJobId, topN);
-  }, [selectedJobId]);
+  }, [loadRanking, selectedJobId, topN]);
 
   const totalApplicantsAcrossJobs = useMemo(
     () => jobs.reduce((sum, job) => sum + (job.applicant_count || 0), 0),
@@ -158,7 +158,7 @@ const RecruiterApplicantsPage = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Applicant Matching</h1>
+        <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">Applicant Matching</h1>
         <p className="mt-1 text-slate-500">Rank applicants against the exact job posting and shortlist the best top N candidates.</p>
       </div>
 
@@ -212,12 +212,12 @@ const RecruiterApplicantsPage = () => {
       {!error && jobs.length > 0 && (
         <>
           <div className="surface-panel p-5">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-slate-900">Choose Job</h2>
                 <p className="text-sm text-slate-500">Ranking is calculated from job title, requirements, skills, experience, and candidate application content.</p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center lg:justify-end">
                 <label className="text-sm font-medium text-slate-600">Top N</label>
                 <input
                   type="number"
@@ -225,12 +225,12 @@ const RecruiterApplicantsPage = () => {
                   max="50"
                   value={topN}
                   onChange={(event) => setTopN(Math.max(1, Math.min(50, Number(event.target.value) || 1)))}
-                  className="input w-24"
+                  className="input w-full sm:w-24"
                 />
-                <button onClick={handleRefresh} className="btn-secondary">
+                <button onClick={handleRefresh} className="btn-secondary w-full justify-center sm:w-auto">
                   <RefreshCcw size={14} /> Recalculate
                 </button>
-                <button onClick={handleShortlistTop} disabled={shortlisting || rankingLoading || !selectedJobId} className="btn-primary">
+                <button onClick={handleShortlistTop} disabled={shortlisting || rankingLoading || !selectedJobId} className="btn-primary w-full justify-center sm:w-auto">
                   <Award size={14} /> {shortlisting ? 'Shortlisting...' : `Shortlist Top ${topN}`}
                 </button>
               </div>
@@ -261,7 +261,7 @@ const RecruiterApplicantsPage = () => {
 
           {selectedJob && (
             <div className="surface-panel overflow-hidden">
-              <div className="border-b border-slate-100 px-6 py-4">
+              <div className="border-b border-slate-100 px-4 py-4 sm:px-6">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                   <div>
                     <h2 className="text-xl font-semibold text-slate-900">{selectedJob.title}</h2>
@@ -281,7 +281,7 @@ const RecruiterApplicantsPage = () => {
                     const normalizedStatus = normalizeApplicationStatus(match.status);
 
                     return (
-                    <div key={match.application_id} className="px-6 py-5">
+                    <div key={match.application_id} className="px-4 py-5 sm:px-6">
                       <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
                         <div className="space-y-4 xl:max-w-3xl">
                           <div className="flex flex-wrap items-center gap-3">
@@ -361,7 +361,7 @@ const RecruiterApplicantsPage = () => {
                           )}
                         </div>
 
-                        <div className="w-full max-w-sm rounded-[28px] border border-slate-100 bg-slate-50/70 p-4">
+                        <div className="w-full rounded-[28px] border border-slate-100 bg-slate-50/70 p-4 xl:max-w-sm">
                           <div className="mb-4 flex items-center justify-between">
                             <div>
                               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Match Score</p>
@@ -397,7 +397,7 @@ const RecruiterApplicantsPage = () => {
                                 type="button"
                                 onClick={() => handleStatusUpdate(match.application_id, action.key)}
                                 disabled={statusUpdatingId === match.application_id || normalizedStatus === action.key}
-                                className={action.className}
+                                className={`${action.className} w-full justify-center`}
                               >
                                 {statusUpdatingId === match.application_id ? 'Updating...' : action.label}
                               </button>

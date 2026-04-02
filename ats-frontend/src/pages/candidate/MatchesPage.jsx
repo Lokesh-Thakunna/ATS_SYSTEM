@@ -21,7 +21,6 @@ const MatchesPage = () => {
   const [matches, setMatches]   = useState([]);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState(null);
-  const [resumeId, setResumeId] = useState(null);
 
   const load = async () => {
     setLoading(true); setError(null);
@@ -30,7 +29,6 @@ const MatchesPage = () => {
       const list = Array.isArray(resumes) ? resumes : resumes.results || [];
       if (!list.length) { setError('no_resume'); setLoading(false); return; }
       const first = list[0];
-      setResumeId(first.id);
       const data = await matchingService.matchJobsForResume(first.id);
       setMatches(Array.isArray(data) ? data.slice(0, 20) : []);
     } catch (err) {

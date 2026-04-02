@@ -17,8 +17,8 @@ const AppLayout = () => {
         onClose={() => setSidebarOpen(false)}
       />
 
-      <main className="min-h-screen pt-16 lg:pl-72">
-        <div className="p-3 sm:p-5 lg:p-6">
+      <main className="min-h-screen overflow-x-hidden pt-16 lg:pl-72">
+        <div className="mx-auto max-w-[1600px] px-3 py-4 sm:px-5 sm:py-5 lg:px-6 lg:py-6">
           <Outlet />
         </div>
       </main>
