@@ -16,7 +16,12 @@ from .serializers import ResumeUploadSerializer
 from services.parser.resume_parser import parse_resume
 from core.validators import validate_resume
 from core.logger import logger
-from .utils import build_resume_access_url, can_user_access_resume, build_resume_file_response
+from .utils import (
+    build_resume_access_url,
+    can_user_access_resume,
+    build_resume_file_response,
+    resolve_resume_access_target,
+)
 
 
 @api_view(["POST"])
@@ -145,6 +150,25 @@ def upload_resume(request):
     except Exception as e:
         logger.error(f"Resume upload error: {str(e)}")
         return Response({"error": str(e)}, status=500)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def resolve_resume_access(request, resume_id):
+    resume = Resume.objects.select_related("candidate").filter(id=resume_id, is_active=True).first()
+    if not resume:
+        raise Http404("Resume not found")
+
+    if not can_user_access_resume(request.user, resume):
+        return Response({"error": "You do not have permission to access this resume"}, status=403)
+
+    target = resolve_resume_access_target(request, resume)
+    return Response({
+        "resume_id": resume.id,
+        "file_name": resume.file_name,
+        "mime_type": resume.mime_type,
+        **target,
+    })
 
 
 @api_view(["GET"])

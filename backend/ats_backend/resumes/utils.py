@@ -32,6 +32,20 @@ def build_resume_access_url(request, resume):
     return request.build_absolute_uri(path)
 
 
+def resolve_resume_access_target(request, resume):
+    if resume.storage_backend == resume.StorageBackend.SUPABASE and resume.cloud_url:
+        return {
+            "url": resume.cloud_url,
+            "requires_auth": False,
+        }
+
+    access_url = build_resume_access_url(request, resume)
+    return {
+        "url": access_url,
+        "requires_auth": True,
+    }
+
+
 def can_user_access_resume(user, resume):
     if not user or not user.is_authenticated:
         return False
