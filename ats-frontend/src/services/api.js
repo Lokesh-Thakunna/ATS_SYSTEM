@@ -15,7 +15,7 @@ if (!import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_BASE_URL === 
 
 const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 10000,
+  timeout: 30000,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -30,6 +30,13 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (error) => {
+    if (error.code === 'ECONNABORTED') {
+      return Promise.reject({
+        type: 'TIMEOUT',
+        message: 'Request timed out. Please try again.',
+      });
+    }
+
     if (!error.response) {
       return Promise.reject({ type: 'NETWORK', message: 'Network error. Please check your connection.' });
     }

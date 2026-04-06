@@ -2,9 +2,10 @@ from io import BytesIO
 from pathlib import Path
 
 from django.http import FileResponse
+from django.shortcuts import redirect
 from django.urls import reverse
 
-from ats_backend.utils.supabase_client import supabase
+from ats_backend.utils.supabase_client import get_supabase_client
 from jobs.models import JobApplication
 
 
@@ -51,6 +52,9 @@ def can_user_access_resume(user, resume):
 
 
 def build_resume_file_response(resume):
+    if resume.storage_backend == resume.StorageBackend.SUPABASE and resume.cloud_url:
+        return redirect(resume.cloud_url)
+
     if resume.storage_backend == resume.StorageBackend.LOCAL and resume.storage_path:
         file_path = Path(resume.storage_path)
         return FileResponse(
@@ -61,6 +65,10 @@ def build_resume_file_response(resume):
         )
 
     if resume.storage_backend == resume.StorageBackend.SUPABASE and resume.storage_path:
+        supabase = get_supabase_client()
+        if supabase is None:
+            raise FileNotFoundError("Supabase storage is not available")
+
         file_bytes = supabase.storage.from_("Candidate_resume").download(resume.storage_path)
         if file_bytes:
             return FileResponse(

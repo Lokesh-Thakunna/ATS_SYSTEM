@@ -8,9 +8,8 @@ from django.conf import settings
 
 from candidates.models import Candidate
 from resumes.models import Resume, Skill, Project
-from ats_backend.utils.supabase_client import supabase
+from ats_backend.utils.supabase_client import get_supabase_client
 from jobs.utils.embedding import generate_embedding
-from matching.utils import update_match_scores_for_resume
 
 from .serializers import ResumeUploadSerializer
 
@@ -53,9 +52,13 @@ def upload_resume(request):
         file_name = f"{uuid.uuid4()}_{file.name}"
 
         file_bytes = file.read()
+        supabase = get_supabase_client()
 
         # Upload to Candidate_resume bucket in Supabase
         try:
+            if supabase is None:
+                raise RuntimeError("Supabase client unavailable")
+
             supabase.storage.from_("Candidate_resume").upload(file_name, file_bytes)
             file_url = f"{settings.SUPABASE_URL}/storage/v1/object/public/Candidate_resume/{file_name}"
             storage_backend = Resume.StorageBackend.SUPABASE
@@ -74,9 +77,9 @@ def upload_resume(request):
         parsed_data = parse_resume(file_bytes, file.content_type)
 
         raw_text = parsed_data.get("raw_text", "")
-        skills = parsed_data.get("skills", [])
+        skills = sorted({str(skill).strip() for skill in parsed_data.get("skills", []) if str(skill).strip()})
         experience_years = parsed_data.get("experience", 0.0)
-        projects = parsed_data.get("projects", [])
+        projects = sorted({str(project).strip() for project in parsed_data.get("projects", []) if str(project).strip()})
 
         resume_embedding = generate_embedding(raw_text)
         if hasattr(resume_embedding, "tolist"):
@@ -92,7 +95,8 @@ def upload_resume(request):
             mime_type=file.content_type,
             raw_text=raw_text,
             embedding=resume_embedding,
-            parsing_status=Resume.ParsingStatus.COMPLETED,
+            parsing_status=Resume.ParsingStatus.COMPLETED if raw_text else Resume.ParsingStatus.FAILED,
+            parsing_error="" if raw_text else "No readable text could be extracted from the uploaded resume.",
             is_primary=False,
         )
 
@@ -106,21 +110,18 @@ def upload_resume(request):
             candidate.total_experience_years = experience_years
         candidate.save()
 
-        logger.info(f"Resume uploaded successfully for candidate {candidate_id}")
+        logger.info("Resume uploaded successfully for candidate %s", candidate.id)
 
-        for skill in skills:
-            Skill.objects.create(resume=resume, skill_name=skill)
+        if skills:
+            Skill.objects.bulk_create(
+                [Skill(resume=resume, skill_name=skill) for skill in skills],
+                ignore_conflicts=True,
+            )
 
-        for project_name in projects:
-            Project.objects.create(resume=resume, name=project_name)
-
-        try:
-            matching_results = update_match_scores_for_resume(resume.id)
-        except Exception:
-            matching_results = []
-
-        match_scores = [round(m['score'] * 100, 2) for m in matching_results[:10]]
-        top_match_score = match_scores[0] if match_scores else None
+        if projects:
+            Project.objects.bulk_create(
+                [Project(resume=resume, name=project_name) for project_name in projects]
+            )
 
         return Response({
             "message": "Resume uploaded and parsed successfully",
@@ -132,10 +133,11 @@ def upload_resume(request):
             "resume_url": build_resume_access_url(request, resume),
             "candidate_id": candidate.id,
             "resume_id": resume.id,
-            "match_scores": match_scores,
-            "match_score": top_match_score,
+            "match_scores": [],
+            "match_score": None,
             "file_name": resume.file_name,
             "uploaded_at": resume.uploaded_at,
+            "parsing_status": resume.parsing_status,
         })
 
     except Candidate.DoesNotExist:

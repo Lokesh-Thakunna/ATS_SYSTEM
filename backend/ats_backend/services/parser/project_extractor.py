@@ -1,11 +1,12 @@
 import re
-import spacy
+
+from .nlp import get_nlp
 
 def extract_projects(text):
     """
     Extract project names from resume text using improved patterns and NLP
     """
-    text = text.lower()
+    source_text = text or ""
     projects = set()
 
     # Improved regex patterns for different resume formats
@@ -27,16 +28,14 @@ def extract_projects(text):
     ]
 
     for pattern in patterns:
-        matches = re.findall(pattern, text)
+        matches = re.findall(pattern, source_text, flags=re.IGNORECASE)
         for match in matches:
             projects.add(match.strip())
 
-    try:
-        # Load spaCy model
-        nlp = spacy.load("en_core_web_sm")
-        
+    nlp = get_nlp()
+    if nlp is not None:
         # Use spaCy to find sentences with project keywords and extract noun phrases
-        doc = nlp(text)
+        doc = nlp(source_text)
         project_keywords = ["project", "developed", "built", "created", "implemented", "designed", "worked", "led", "managed", "contributed"]
 
         for sent in doc.sents:
@@ -44,18 +43,17 @@ def extract_projects(text):
             if any(keyword in sent_text for keyword in project_keywords):
                 # Extract compound nouns and proper nouns that are likely project names
                 for chunk in sent.noun_chunks:
-                    chunk_text = chunk.text.lower()
-                    if len(chunk_text) > 5 and not any(stop in chunk_text for stop in ["experience", "skills", "education", "work", "company", "team", "years", "month"]):
+                    chunk_text = chunk.text.strip()
+                    lowered = chunk_text.lower()
+                    if len(chunk_text) > 5 and not any(stop in lowered for stop in ["experience", "skills", "education", "work", "company", "team", "years", "month"]):
                         projects.add(chunk_text)
-    except OSError:
-        # Fallback if spaCy not available
-        pass
 
     # Clean up the results
     cleaned_projects = []
     for project in projects:
-        project = re.sub(r'[^\w\s]', '', project).strip()  # Remove punctuation
-        if len(project) > 5 and len(project.split()) <= 5:  # Reasonable length
+        project = re.sub(r"\s+", " ", re.sub(r"[^\w\s\-+/]", "", project)).strip()
+        lowered = project.lower()
+        if len(project) > 5 and len(project.split()) <= 6 and lowered not in {"projects", "project"}:
             cleaned_projects.append(project)
 
-    return list(set(cleaned_projects))
+    return sorted(set(cleaned_projects))

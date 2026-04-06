@@ -14,7 +14,7 @@ from core.validators import (
     validate_email_address, validate_password, validate_full_name,
     validate_phone_number, validate_text_field
 )
-from core.exceptions import ValidationError, AuthenticationError
+from core.exceptions import ValidationError, AuthenticationError, ConflictError
 
 
 def _build_user_payload(user):
@@ -172,11 +172,14 @@ def login(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, IsAdmin])
 def create_recruiter_view(request):
-    user = create_recruiter(request.data, request.user)
-    return Response({
-        "message": "Recruiter created",
-        "user": _build_user_payload(user),
-    })
+    try:
+        user = create_recruiter(request.data, request.user)
+        return Response({
+            "message": "Recruiter created",
+            "user": _build_user_payload(user),
+        })
+    except (ValidationError, ValueError, ConflictError) as error:
+        return Response({"error": str(error)}, status=getattr(error, "status_code", 400))
 
 
 @api_view(['GET'])

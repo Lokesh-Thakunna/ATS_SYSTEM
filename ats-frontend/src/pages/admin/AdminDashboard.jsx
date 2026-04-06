@@ -34,8 +34,19 @@ const AdminDashboard = () => {
 
   const handleCreate = async (event) => {
     event.preventDefault();
+    const fullName = `${form.first_name} ${form.last_name}`.trim();
+    if (!fullName) {
+      toast.error('Recruiter full name is required');
+      return;
+    }
+
     if (!form.email || !form.password) {
       toast.error('Email and password required');
+      return;
+    }
+
+    if (form.password.length < 8) {
+      toast.error('Temporary password must be at least 8 characters');
       return;
     }
 

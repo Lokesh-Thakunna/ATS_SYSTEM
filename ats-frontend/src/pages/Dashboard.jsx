@@ -1,13 +1,13 @@
 import { useAuth } from '../context/AuthContext';
 import CandidateDashboard from './candidate/CandidateDashboard';
 import RecruiterDashboard from './recruiter/RecruiterDashboard';
-import AdminDashboard from './admin/AdminDashboard';
+import AdminOverview from './admin/AdminOverview';
 
 const Dashboard = () => {
   const { user } = useAuth();
 
   if (user?.role === 'recruiter') return <RecruiterDashboard />;
-  if (user?.role === 'admin')     return <AdminDashboard />;
+  if (user?.role === 'admin') return <AdminOverview />;
   return <CandidateDashboard />;
 };
 

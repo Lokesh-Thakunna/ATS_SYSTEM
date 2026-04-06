@@ -16,7 +16,6 @@ from matching.utils import (
     get_best_resume_for_candidate,
     get_match_score_for_resume_and_job,
     rank_job_applications,
-    score_candidate_job_fit,
     update_match_scores_for_resume,
 )
 
@@ -126,7 +125,7 @@ def match_jobs_for_resume(request, resume_id):
     if not resume:
         return Response({"error": "Resume not found"}, status=status.HTTP_404_NOT_FOUND)
 
-    scores = update_match_scores_for_resume(resume_id)
+    scores = update_match_scores_for_resume(resume_id, persist=False)
     job_map = {
         job.id: job
         for job in JobDescription.objects.filter(id__in=[score["job_id"] for score in scores[:20]])
@@ -160,7 +159,7 @@ def match_jobs_for_candidate(request, candidate_id):
     if not latest_resume:
         return Response({"error": "Candidate has no resume"}, status=status.HTTP_404_NOT_FOUND)
 
-    scores = update_match_scores_for_resume(latest_resume.id)
+    scores = update_match_scores_for_resume(latest_resume.id, persist=False)
     job_map = {
         job.id: job
         for job in JobDescription.objects.filter(id__in=[score["job_id"] for score in scores[:20]])

@@ -1,3 +1,4 @@
+import os
 import re
 from decimal import Decimal
 from datetime import datetime, timezone as dt_timezone
@@ -12,6 +13,7 @@ from jobs.utils.embedding import generate_embedding
 
 
 MODEL_VERSION = "hybrid-explainable-v2.0"
+DEFAULT_MATCHING_JOB_LIMIT = max(20, int(os.getenv("MATCHING_JOB_LIMIT", "100")))
 
 STOPWORDS = {
     "a", "an", "and", "or", "the", "for", "with", "to", "of", "in", "on",
@@ -712,7 +714,7 @@ def calculate_weighted_match_score(resume, job, application=None):
     return result["final_score"], components
 
 
-def update_match_scores_for_resume(resume_id):
+def update_match_scores_for_resume(resume_id, persist=False, limit=None):
     resume = Resume.objects.select_related("candidate").prefetch_related(
         "skills",
         "education",
@@ -722,11 +724,12 @@ def update_match_scores_for_resume(resume_id):
     if not resume:
         return []
 
-    jobs = JobDescription.objects.filter(is_active=True).prefetch_related("skills")[:500]
+    max_jobs = limit or DEFAULT_MATCHING_JOB_LIMIT
+    jobs = JobDescription.objects.filter(is_active=True).prefetch_related("skills")[:max_jobs]
     results = []
 
     for job in jobs:
-        scoring = score_candidate_job_fit(job, candidate=resume.candidate, resume=resume, persist=True)
+        scoring = score_candidate_job_fit(job, candidate=resume.candidate, resume=resume, persist=persist)
         results.append({
             "job_id": job.id,
             "score": scoring["final_score"],

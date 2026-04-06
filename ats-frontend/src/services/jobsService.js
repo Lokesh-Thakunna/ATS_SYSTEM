@@ -74,6 +74,7 @@ export const jobsService = {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
+        timeout: 60000,
       };
     } else {
       payload = {

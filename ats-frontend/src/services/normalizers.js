@@ -14,6 +14,26 @@ const APPLICATION_STATUS_ALIASES = {
   rejected: 'rejected',
 };
 
+const normalizeStringList = (values = [], fallbackKeys = []) => {
+  if (!Array.isArray(values)) return [];
+
+  const items = values
+    .map((value) => {
+      if (typeof value === 'string') return value.trim();
+      if (value && typeof value === 'object') {
+        for (const key of fallbackKeys) {
+          if (typeof value[key] === 'string' && value[key].trim()) {
+            return value[key].trim();
+          }
+        }
+      }
+      return '';
+    })
+    .filter(Boolean);
+
+  return [...new Set(items)];
+};
+
 export const normalizeApplicationStatus = (status) => {
   const normalized = String(status || 'applied').trim().toLowerCase();
   return APPLICATION_STATUS_ALIASES[normalized] || 'applied';
@@ -61,8 +81,8 @@ export const normalizeResume = (resume = {}) => ({
   created_at: resume.created_at ?? resume.uploaded_at ?? null,
   uploaded_at: resume.uploaded_at ?? resume.created_at ?? null,
   is_primary: Boolean(resume.is_primary),
-  skills: Array.isArray(resume.skills) ? resume.skills : [],
-  projects: Array.isArray(resume.projects) ? resume.projects : [],
+  skills: normalizeStringList(resume.skills, ['skill_name', 'name', 'skill']),
+  projects: normalizeStringList(resume.projects, ['name', 'title', 'project_name']),
 });
 
 export const normalizeMatch = (match = {}) => ({

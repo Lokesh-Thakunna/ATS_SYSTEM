@@ -4,7 +4,6 @@ Security middleware for additional protection and logging
 
 import logging
 import time
-from django.conf import settings
 from django.http import HttpResponseForbidden
 
 
@@ -40,7 +39,12 @@ class SecurityMiddleware:
         # Log response time for slow requests
         duration = time.time() - start_time
         if duration > 1.0:  # Log requests taking more than 1 second
-            logger.warning(".2f")
+            logger.warning(
+                "Slow request detected: %s %s completed in %.2fs",
+                request.method,
+                request.path,
+                duration,
+            )
 
         return response
 

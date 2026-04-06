@@ -14,12 +14,12 @@ from .models import JobDescription, JobSkill, JobApplication
 from .serializers import JobDescriptionSerializer, AddJobSkillsSerializer, UpdateJobApplicationStatusSerializer
 from .utils.embedding import generate_embedding
 from candidates.models import Candidate
-from resumes.models import Resume
+from resumes.models import Resume, Skill, Project
 from resumes.utils import build_resume_access_url, get_active_resume_for_candidate
 
 import os
 import uuid
-from ats_backend.utils.supabase_client import supabase
+from ats_backend.utils.supabase_client import get_supabase_client
 
 
 def _get_recruiter_owned_job_or_404(request, job_id):
@@ -371,15 +371,17 @@ def apply_for_job(request, job_id):
             validate_resume(resume_file)
 
             try:
-                from ats_backend.utils.supabase_client import supabase
-                import uuid
-                import os
+                from services.parser.resume_parser import parse_resume
 
                 file_name = f"{uuid.uuid4()}_{resume_file.name}"
                 file_bytes = resume_file.read()
+                supabase = get_supabase_client()
 
                 # Upload to Supabase (with fallback to local when RLS/permission failure)
                 try:
+                    if supabase is None:
+                        raise RuntimeError("Supabase client unavailable")
+
                     supabase.storage.from_("Candidate_resume").upload(file_name, file_bytes)
                     cloud_url = supabase.storage.from_("Candidate_resume").get_public_url(file_name)
                 except Exception as upload_err:
@@ -397,10 +399,15 @@ def apply_for_job(request, job_id):
 
                 # Parse and store resume
                 raw_text = ''
+                parsed_skills = []
+                parsed_projects = []
+                parsed_experience = None
                 try:
-                    from ats_backend.services.parser.resume_parser import parse_resume
                     parsed_data = parse_resume(file_bytes, resume_file.content_type)
                     raw_text = parsed_data.get('raw_text', '')
+                    parsed_skills = sorted({str(skill).strip() for skill in parsed_data.get('skills', []) if str(skill).strip()})
+                    parsed_projects = sorted({str(project).strip() for project in parsed_data.get('projects', []) if str(project).strip()})
+                    parsed_experience = parsed_data.get('experience')
                 except Exception as parse_err:
                     # Log parsing error but don't fail the application
                     import logging
@@ -435,6 +442,7 @@ def apply_for_job(request, job_id):
                     raw_text=raw_text,
                     embedding=embedding,
                     parsing_status=Resume.ParsingStatus.COMPLETED if raw_text else Resume.ParsingStatus.FAILED,
+                    parsing_error='' if raw_text else 'No readable text could be extracted from the uploaded resume.',
                     is_primary=False,
                 )
 
@@ -445,7 +453,20 @@ def apply_for_job(request, job_id):
                 # Update candidate resume info
                 candidate.resume_url = cloud_url
                 candidate.resume_file_name = resume_file.name
+                if parsed_experience is not None and parsed_experience > 0:
+                    candidate.total_experience_years = parsed_experience
                 candidate.save()
+
+                if parsed_skills:
+                    Skill.objects.bulk_create(
+                        [Skill(resume=resume, skill_name=skill) for skill in parsed_skills],
+                        ignore_conflicts=True,
+                    )
+
+                if parsed_projects:
+                    Project.objects.bulk_create(
+                        [Project(resume=resume, name=project_name) for project_name in parsed_projects]
+                    )
 
             except (FileUploadError, ValidationError):
                 raise  # Re-raise our custom exceptions

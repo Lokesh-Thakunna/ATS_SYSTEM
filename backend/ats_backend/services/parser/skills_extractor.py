@@ -1,7 +1,8 @@
-from fuzzywuzzy import fuzz
-import spacy
-from spacy.matcher import PhraseMatcher
 import re
+
+from fuzzywuzzy import fuzz
+
+from .nlp import get_nlp, get_skill_phrase_matcher
 
 SKILLS = [
     "python", "java", "c", "c++", "c#", "javascript", "typescript", "ruby", "php", "go", "rust", "kotlin", "swift", "scala", "perl",
@@ -25,26 +26,17 @@ def extract_skills(text):
     """
     Extract skills from text with better accuracy using spaCy matcher and fuzzy matching
     """
-    text = text.lower()
+    text = (text or "").lower()
     found = set()
 
-    try:
-        # Load spaCy model
-        nlp = spacy.load("en_core_web_sm")
-        
-        # Create phrase matcher
-        matcher = PhraseMatcher(nlp.vocab, attr="LOWER")
-        patterns = [nlp.make_doc(skill) for skill in SKILLS]
-        matcher.add("SKILLS", patterns)
-
+    nlp = get_nlp()
+    matcher = get_skill_phrase_matcher()
+    if nlp is not None and matcher is not None:
         doc = nlp(text)
         matches = matcher(doc)
         for match_id, start, end in matches:
             span = doc[start:end]
             found.add(span.text.lower())
-    except OSError:
-        # Fallback to simple matching if spaCy model not available
-        pass
 
     # Enhanced exact matching with better patterns
     for skill in SKILLS:
@@ -68,12 +60,14 @@ def extract_skills(text):
                 found.add(skill)
 
     # Additional fuzzy matching for skills not caught
-    words = text.split()
-    for i in range(len(words)):
-        for j in range(i+1, min(i+5, len(words)+1)):  # phrases up to 4 words
-            phrase = " ".join(words[i:j])
-            for skill in SKILLS:
-                if skill not in found and fuzz.ratio(skill, phrase) > 80:  # Lower threshold
-                    found.add(skill)
+    if not found:
+        words = text.split()
+        max_windows = min(len(words), 250)
+        for i in range(max_windows):
+            for j in range(i + 1, min(i + 5, max_windows + 1)):
+                phrase = " ".join(words[i:j])
+                for skill in SKILLS:
+                    if skill not in found and fuzz.ratio(skill, phrase) > 80:
+                        found.add(skill)
 
-    return list(found)
+    return sorted(found)

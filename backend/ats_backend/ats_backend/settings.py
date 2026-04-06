@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 from datetime import timedelta
 import os
+import importlib.util
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -20,6 +21,13 @@ load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+def _split_env_list(value, default=None):
+    raw_value = value if value is not None else default
+    if not raw_value:
+        return []
+    return [item.strip() for item in str(raw_value).split(',') if item.strip()]
 
 
 # SECURITY SETTINGS
@@ -30,7 +38,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-change-this-in-production'
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
 # Allow all hosts in development, restrict in production
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = _split_env_list(os.getenv('ALLOWED_HOSTS'), 'localhost,127.0.0.1')
 
 # HTTPS and Security Headers
 SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'False').lower() == 'true'
@@ -77,12 +85,9 @@ INSTALLED_APPS = [
 ]
 
 # Rate limiting (requires django-ratelimit package)
-try:
-    import ratelimit
+HAS_RATELIMIT = importlib.util.find_spec('ratelimit') is not None
+if HAS_RATELIMIT:
     INSTALLED_APPS.append('ratelimit')
-    HAS_RATELIMIT = True
-except ImportError:
-    HAS_RATELIMIT = False
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -114,10 +119,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'ats_backend.wsgi.application'
-
-
-import os
-
 # Supabase Configuration
 SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_KEY = os.getenv('SUPABASE_KEY')
@@ -246,14 +247,11 @@ SIMPLE_JWT = {
 }
 
 # CORS settings
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://localhost:3001",
-    "http://127.0.0.1:3001",
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
+CORS_ALLOWED_ORIGINS = _split_env_list(
+    os.getenv('CORS_ALLOWED_ORIGINS'),
+    'http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,http://localhost:5173,http://127.0.0.1:5173',
+)
+CSRF_TRUSTED_ORIGINS = _split_env_list(os.getenv('CSRF_TRUSTED_ORIGINS'))
 
 CORS_ALLOW_CREDENTIALS = True
 

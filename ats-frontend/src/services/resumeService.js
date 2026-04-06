@@ -10,6 +10,7 @@ export const resumeService = {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+      timeout: 60000,
       onUploadProgress: (progressEvent) => {
         if (onProgress) {
           const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
