@@ -1,0 +1,62 @@
+{# authentication/templates/emails/organization_registration.txt #}
+WELCOME TO ATS
+{{ organization_name }} Organization Setup
+
+Hello,
+
+Your organization "{{ organization_name }}" has been successfully created on the ATS platform.
+
+===============================================
+YOUR ORGANIZATION REGISTRATION DETAILS
+===============================================
+
+Admin Email:       {{ admin_email }}
+Temporary Password: {{ temp_password }}
+
+===============================================
+NEXT STEPS TO GET STARTED
+===============================================
+
+1. LOGIN TO YOUR DASHBOARD
+   Visit: {{ login_url }}
+   Use your email and temporary password from above.
+
+2. CHANGE YOUR PASSWORD
+   After logging in, immediately change your password to something secure.
+   Visit: {{ change_password_url }}
+
+3. CONFIGURE ORGANIZATION SETTINGS
+   - Complete your organization profile
+   - Invite team members and recruiters
+   - Configure job board settings
+
+4. CREATE YOUR FIRST JOB
+   Start posting job opportunities to find great candidates.
+
+===============================================
+SECURITY NOTICE
+===============================================
+
+⚠️  IMPORTANT SECURITY INFORMATION:
+- This is a temporary password. You MUST change it immediately after login.
+- Never share this password with anyone.
+- For production use, ensure all communication is over HTTPS.
+- Keep your credentials confidential.
+- If you didn't request this account, contact us immediately.
+
+===============================================
+NEED HELP?
+===============================================
+
+If you have any questions or need assistance:
+- Email: {{ support_email }}
+- Documentation: https://docs.ats.local
+- Support Portal: https://support.ats.local
+
+===============================================
+
+This email was sent to {{ admin_email }} because an ATS organization account was created for you.
+
+Created by: {{ created_by_email }}
+
+© 2026 ATS Platform. All rights reserved.

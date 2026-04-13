@@ -3,7 +3,6 @@ from rest_framework.response import Response
 from rest_framework import status
 from .resume_parser import parse_resume
 
-
 @api_view(['POST'])
 def parse_resume_view(request):
     """

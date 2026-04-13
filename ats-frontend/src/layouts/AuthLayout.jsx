@@ -5,9 +5,9 @@ const AuthLayout = () => (
     <header className="px-4 py-4 sm:px-6">
       <Link to="/" className="inline-flex items-center gap-2">
         <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-600">
-          <span className="text-sm font-bold text-white" style={{ fontFamily: 'Syne, sans-serif' }}>A</span>
+          <span className="text-sm font-bold text-white" style={{ fontFamily: 'Outfit, sans-serif' }}>A</span>
         </div>
-        <span className="text-lg font-bold text-gray-900 sm:text-xl" style={{ fontFamily: 'Syne, sans-serif' }}>
+        <span className="text-lg font-bold text-gray-900 sm:text-xl" style={{ fontFamily: 'Outfit, sans-serif' }}>
           ATSSYSTEM
         </span>
       </Link>

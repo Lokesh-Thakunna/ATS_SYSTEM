@@ -92,11 +92,12 @@ if HAS_RATELIMIT:
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',
-    'core.middleware.SecurityMiddleware',  # Custom security middleware
+    # 'core.middleware.SecurityMiddleware',  # Custom security middleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    # 'core.middleware.TenantRoutingMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -132,9 +133,12 @@ DATABASES = {
         'PASSWORD': os.getenv('DB_PASSWORD'),
         'HOST': os.getenv('DB_HOST'),
         'PORT': os.getenv('DB_PORT'),
+        'CONN_MAX_AGE': 600,  # Connection pooling - reuse connections for 10 minutes
         'OPTIONS': {
             'sslmode': 'disable' if DEBUG else 'require',
+            'connect_timeout': 5,  # Reduced timeout for faster failure detection
         },
+        'ATOMIC_REQUESTS': False,  # Disable automatic transactions per request for better concurrency
     }
 }
 
@@ -246,6 +250,11 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
 }
 
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', '')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', CELERY_BROKER_URL)
+CELERY_TASK_ALWAYS_EAGER = os.getenv('CELERY_TASK_ALWAYS_EAGER', 'False').lower() == 'true'
+RESUME_PROCESSING_MODE = os.getenv('RESUME_PROCESSING_MODE', 'auto').lower()
+
 # CORS settings
 CORS_ALLOWED_ORIGINS = _split_env_list(
     os.getenv('CORS_ALLOWED_ORIGINS'),
@@ -254,6 +263,23 @@ CORS_ALLOWED_ORIGINS = _split_env_list(
 CSRF_TRUSTED_ORIGINS = _split_env_list(os.getenv('CSRF_TRUSTED_ORIGINS'))
 
 CORS_ALLOW_CREDENTIALS = True
+
+# Cache Configuration for Performance
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+        'TIMEOUT': 300,  # 5 minutes default
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000,
+            'CULL_FREQUENCY': 3,
+        }
+    }
+}
+
+# Session Configuration
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_CACHE_ALIAS = 'default'
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/

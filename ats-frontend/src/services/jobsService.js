@@ -24,8 +24,8 @@ export const jobsService = {
     };
   },
 
-  getJob: async (id) => {
-    const response = await api.get(`/jobs/${id}/`);
+  getJob: async (id, params = {}) => {
+    const response = await api.get(`/jobs/${id}/`, { params });
     return normalizeJob(response.data);
   },
 

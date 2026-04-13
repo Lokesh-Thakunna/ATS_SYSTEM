@@ -1,0 +1,177 @@
+{# authentication/templates/emails/organization_registration.html #}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #4f46e5;
+            padding-bottom: 20px;
+        }
+        .header h1 {
+            color: #4f46e5;
+            margin: 0;
+            font-size: 28px;
+        }
+        .content {
+            margin: 30px 0;
+        }
+        .credentials-box {
+            background-color: #f0f4ff;
+            border-left: 4px solid #4f46e5;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .credentials-box p {
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .credential-item {
+            display: flex;
+            margin: 15px 0;
+        }
+        .credential-label {
+            font-weight: bold;
+            width: 120px;
+            color: #4f46e5;
+        }
+        .credential-value {
+            font-family: 'Courier New', monospace;
+            background-color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .button {
+            display: inline-block;
+            background-color: #4f46e5;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            color: #856404;
+            font-size: 14px;
+        }
+        .footer {
+            border-top: 1px solid #ddd;
+            margin-top: 30px;
+            padding-top: 20px;
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+        }
+        .step {
+            margin: 15px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+        .step:before {
+            content: attr(data-step);
+            position: absolute;
+            left: 0;
+            background-color: #4f46e5;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Welcome to ATS</h1>
+            <p>{{ organization_name }} Organization Setup</p>
+        </div>
+
+        <div class="content">
+            <p>Hello,</p>
+            <p>Your organization <strong>{{ organization_name }}</strong> has been successfully created on the ATS platform.</p>
+            
+            <div class="credentials-box">
+                <p><strong>📊 Your Organization Registration Details</strong></p>
+                <div class="credential-item">
+                    <div class="credential-label">Admin Email:</div>
+                    <div class="credential-value">{{ admin_email }}</div>
+                </div>
+                <div class="credential-item">
+                    <div class="credential-label">Temporary Password:</div>
+                    <div class="credential-value">{{ temp_password }}</div>
+                </div>
+            </div>
+
+            <h3>🚀 Next Steps to Get Started</h3>
+            <div class="step" data-step="1">
+                <strong>Login to Your Dashboard</strong><br>
+                Visit <a href="{{ login_url }}">{{ login_url }}</a> and login with your credentials above.
+            </div>
+            
+            <div class="step" data-step="2">
+                <strong>Change Your Password</strong><br>
+                After logging in, immediately change your password to something secure. Visit your <a href="{{ change_password_url }}">Security Settings</a>.
+            </div>
+            
+            <div class="step" data-step="3">
+                <strong>Configure Organization Settings</strong><br>
+                Update your organization profile, add team members, and configure job board settings.
+            </div>
+            
+            <div class="step" data-step="4">
+                <strong>Create Your First Job</strong><br>
+                Start posting job opportunities to find great candidates.
+            </div>
+
+            <div class="warning">
+                ⚠️ <strong>Security Notice:</strong> This is a temporary password. You must change it immediately after your first login. Never share this password with anyone. For production environments, ensure HTTPS is enabled and credentials are handled securely.
+            </div>
+
+            <p style="margin-top: 30px;">
+                If you have any questions or need assistance, please contact us at <a href="mailto:{{ support_email }}">{{ support_email }}</a>.
+            </p>
+
+            <p style="margin-top: 30px;">
+                Best regards,<br>
+                <strong>ATS Platform Team</strong>
+            </p>
+        </div>
+
+        <div class="footer">
+            <p>This email was sent to {{ admin_email }} because an ATS organization account was created for you.</p>
+            <p>If you didn't create this account, please contact {{ support_email }} immediately.</p>
+            <p>&copy; 2026 ATS Platform. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

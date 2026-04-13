@@ -9,11 +9,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import exception_handler
 
-from .exceptions import (
-    ATSException, ValidationError, AuthenticationError,
-    AuthorizationError, NotFoundError, ConflictError,
-    ServiceUnavailableError, FileUploadError, EmbeddingGenerationError
-)
+from .exceptions import ATSException
 
 logger = logging.getLogger(__name__)
 

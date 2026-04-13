@@ -7,6 +7,13 @@ from django.core.exceptions import ValidationError
 
 class JobDescription(models.Model):
     posted_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="posted_jobs")
+    # Organization keeps recruiter job boards isolated per tenant without
+    # changing the existing recruiter ownership relation.
+    organization = models.ForeignKey(
+        "authentication.Organization",
+        on_delete=models.PROTECT,
+        related_name="jobs",
+    )
     title = models.CharField(max_length=150)
     company = models.CharField(max_length=255, blank=True, null=True)
     description = models.TextField()

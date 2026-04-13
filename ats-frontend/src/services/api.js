@@ -9,7 +9,7 @@ const BASE_URL = configuredApiBaseUrl
   ? (configuredApiBaseUrl.endsWith('/api') ? configuredApiBaseUrl : `${configuredApiBaseUrl}/api`)
   : DEFAULT_API_URL;
 
-if (!import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_BASE_URL === 'https://api.yourdomain.com') {
+if ((!import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_BASE_URL === 'https://api.yourdomain.com') && import.meta.env.DEV) {
   console.warn('[API] VITE_API_BASE_URL not configured; using fallback', BASE_URL);
 }
 

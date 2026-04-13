@@ -42,6 +42,8 @@ urlpatterns = [
     path('health/detailed', RedirectView.as_view(url='/health/detailed/', permanent=False)),
 
     # API docs compatibility
+    path('docs/', api_documentation, name='docs') if HAS_API_DOCS else path('docs/', lambda request: HttpResponse('API docs module missing or Markdown not installed', status=404)),
+    path('docs', RedirectView.as_view(url='/docs/', permanent=False)),
     path('api/docs/', api_documentation, name='api_docs') if HAS_API_DOCS else path('api/docs/', lambda request: HttpResponse('API docs module missing or Markdown not installed', status=404)),
     path('api/docs', RedirectView.as_view(url='/api/docs/', permanent=False)),
     path('api/docs.json', api_docs_json, name='api_docs_json') if HAS_API_DOCS else path('api/docs.json', lambda request: HttpResponse('API docs module missing or Markdown not installed', status=404)),

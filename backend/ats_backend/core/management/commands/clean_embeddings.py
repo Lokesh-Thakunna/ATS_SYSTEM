@@ -1,5 +1,4 @@
 from django.core.management.base import BaseCommand
-from django.db import transaction
 from jobs.models import JobDescription
 from resumes.models import Resume
 

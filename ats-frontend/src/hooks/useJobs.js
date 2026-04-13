@@ -12,14 +12,18 @@ export const useJobs = (params = {}) => {
   const fetchJobs = useCallback(async () => {
     setLoading(true);
     setError(null);
+    const abortController = new AbortController();
     try {
-      const data = await jobsService.getJobs(stableParams);
+      const data = await jobsService.getJobs(stableParams, { signal: abortController.signal });
       setJobs(Array.isArray(data) ? data : data.results || []);
     } catch (err) {
-      setError(err.message || 'Failed to load jobs');
+      if (err.name !== 'AbortError') {
+        setError(err.message || 'Failed to load jobs');
+      }
     } finally {
       setLoading(false);
     }
+    return () => abortController.abort();
   }, [stableParams]);
 
   useEffect(() => { fetchJobs(); }, [fetchJobs]);
@@ -27,7 +31,9 @@ export const useJobs = (params = {}) => {
   return { jobs, loading, error, refetch: fetchJobs };
 };
 
-export const useJob = (id) => {
+export const useJob = (id, params = {}) => {
+  const serializedParams = JSON.stringify(params);
+  const stableParams = useMemo(() => JSON.parse(serializedParams), [serializedParams]);
   const [job, setJob]         = useState(null);
   const [loading, setLoading] = useState(Boolean(id));
   const [error, setError]     = useState(null);
@@ -42,16 +48,20 @@ export const useJob = (id) => {
 
     setLoading(true);
     setError(null);
+    const abortController = new AbortController();
 
     try {
-      const nextJob = await jobsService.getJob(id);
+      const nextJob = await jobsService.getJob(id, stableParams, { signal: abortController.signal });
       setJob(nextJob);
     } catch (err) {
-      setError(err.message || 'Failed to load job');
+      if (err.name !== 'AbortError') {
+        setError(err.message || 'Failed to load job');
+      }
     } finally {
       setLoading(false);
     }
-  }, [id]);
+    return () => abortController.abort();
+  }, [id, stableParams]);
 
   useEffect(() => {
     void fetchJob();
@@ -63,7 +73,7 @@ export const useJob = (id) => {
 export const useJobMutations = () => {
   const [saving, setSaving] = useState(false);
 
-  const createJob = async (data) => {
+  const createJob = useCallback(async (data) => {
     setSaving(true);
     try {
       const result = await jobsService.createJob(data);
@@ -73,9 +83,9 @@ export const useJobMutations = () => {
       toast.error(err.message || 'Failed to create job');
       throw err;
     } finally { setSaving(false); }
-  };
+  }, []);
 
-  const updateJob = async (id, data) => {
+  const updateJob = useCallback(async (id, data) => {
     setSaving(true);
     try {
       const result = await jobsService.updateJob(id, data);
@@ -85,17 +95,20 @@ export const useJobMutations = () => {
       toast.error(err.message || 'Failed to update job');
       throw err;
     } finally { setSaving(false); }
-  };
+  }, []);
 
-  const deleteJob = async (id) => {
+  const deleteJob = useCallback(async (id) => {
+    setSaving(true);
     try {
       await jobsService.deleteJob(id);
       toast.success('Job deleted');
     } catch (err) {
       toast.error(err.message || 'Failed to delete job');
       throw err;
+    } finally {
+      setSaving(false);
     }
-  };
+  }, []);
 
   return { createJob, updateJob, deleteJob, saving };
 };

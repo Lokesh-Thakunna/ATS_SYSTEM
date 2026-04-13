@@ -19,6 +19,13 @@ class Resume(models.Model):
         on_delete=models.CASCADE,
         related_name="resumes"
     )
+    # Organization mirrors the candidate/job tenant boundary so resume
+    # access and matching stay inside one SaaS organization.
+    organization = models.ForeignKey(
+        "authentication.Organization",
+        on_delete=models.PROTECT,
+        related_name="resumes",
+    )
 
     file_name = models.CharField(max_length=255)
 

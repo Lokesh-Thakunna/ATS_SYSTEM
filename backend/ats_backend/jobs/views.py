@@ -3,7 +3,15 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.exceptions import NotFound
 
+from authentication.organization import (
+    ensure_candidate_organization,
+    get_or_create_organization_settings,
+    get_public_organization_by_slug,
+    get_request_organization,
+    get_user_organization,
+)
 from authentication.permissions import IsRecruiter
 
 from django.shortcuts import get_object_or_404
@@ -12,6 +20,7 @@ from django.db.models import Q, Count
 
 from .models import JobDescription, JobSkill, JobApplication
 from .serializers import JobDescriptionSerializer, AddJobSkillsSerializer, UpdateJobApplicationStatusSerializer
+from .application_status import build_application_progress
 from .utils.embedding import generate_embedding
 from candidates.models import Candidate
 from resumes.models import Resume, Skill, Project
@@ -25,15 +34,87 @@ from ats_backend.utils.supabase_client import get_supabase_client
 def _get_recruiter_owned_job_or_404(request, job_id):
     queryset = JobDescription.objects.all()
     if not (request.user.is_superuser or request.user.is_staff):
-        queryset = queryset.filter(posted_by=request.user)
+        # Scope recruiter-owned jobs to the recruiter's organization so one
+        # tenant cannot retrieve another tenant's job by ID.
+        queryset = queryset.filter(
+            posted_by=request.user,
+            organization=get_user_organization(request.user),
+        )
     return get_object_or_404(queryset, id=job_id)
 
 
 def _get_recruiter_owned_application_or_404(request, application_id):
     queryset = JobApplication.objects.select_related("job", "candidate")
     if not (request.user.is_superuser or request.user.is_staff):
-        queryset = queryset.filter(job__posted_by=request.user)
+        queryset = queryset.filter(
+            job__posted_by=request.user,
+            job__organization=get_user_organization(request.user),
+        )
     return get_object_or_404(queryset, id=application_id)
+
+
+def _get_public_listing_organization_or_404(request):
+    organization_slug = (
+        request.query_params.get("organization_slug")
+        or request.query_params.get("organization")
+        or request.data.get("organization_slug")
+    )
+
+    if organization_slug:
+        organization = get_public_organization_by_slug(organization_slug)
+        if organization:
+            return organization
+        raise NotFound("Organization careers page not found")
+
+    organization = get_request_organization(request)
+    settings_obj = get_or_create_organization_settings(organization)
+    if not settings_obj.allow_public_job_board:
+        raise NotFound("Public jobs are unavailable for this organization")
+
+    return organization
+
+
+def _get_requested_organization_slug(request):
+    return (
+        request.query_params.get("organization_slug")
+        or request.query_params.get("organization")
+        or request.data.get("organization_slug")
+        or getattr(request, "requested_organization_slug", "")
+    )
+
+
+def _get_browseable_jobs_queryset(request):
+    if getattr(request.user, "is_authenticated", False):
+        requested_slug = _get_requested_organization_slug(request)
+        user_organization = get_user_organization(request.user)
+        if requested_slug and requested_slug != getattr(user_organization, "slug", ""):
+            raise NotFound("Organization jobs not found")
+        return JobDescription.objects.filter(
+            is_active=True,
+            organization=user_organization,
+        )
+
+    organization = _get_public_listing_organization_or_404(request)
+    return JobDescription.objects.filter(
+        is_active=True,
+        organization=organization,
+    )
+
+
+def _get_browseable_job_or_404(request, job_id):
+    queryset = _get_browseable_jobs_queryset(request).prefetch_related("skills")
+    return get_object_or_404(queryset, id=job_id)
+
+
+def _can_candidate_access_job(request, job):
+    if not job or not job.is_active:
+        return False
+
+    if not getattr(request.user, "is_authenticated", False):
+        return False
+
+    user_organization = get_user_organization(request.user)
+    return bool(user_organization and user_organization.id == job.organization_id)
 
 
 # CREATE JOB
@@ -58,7 +139,11 @@ def create_job(request):
             if hasattr(embedding, "tolist"):
                 embedding = embedding.tolist()
 
-        job = serializer.save(embedding=embedding, posted_by=request.user)
+        job = serializer.save(
+            embedding=embedding,
+            posted_by=request.user,
+            organization=get_user_organization(request.user),
+        )
 
         return Response(
             {
@@ -74,32 +159,43 @@ def create_job(request):
 # GET ALL JOBS
 @api_view(["GET"])
 def get_jobs(request):
-    jobs = JobDescription.objects.prefetch_related("skills").filter(is_active=True)
+    from django.db.models import Count, Prefetch
+    
+    # Prefetch skills and annotate applicant count to avoid N+1 queries
+    jobs = _get_browseable_jobs_queryset(request)
+    jobs = jobs.prefetch_related(
+        Prefetch('jobskill_set'),
+        Prefetch('applications')
+    ).annotate(applicant_count=Count('applications', distinct=True))
 
     keyword = (request.query_params.get("keyword") or request.query_params.get("search") or "").strip()
     location = (request.query_params.get("location") or "").strip()
 
     if keyword:
+        # Use .values_list('id') subquery to avoid expensive distinct() on main query
         jobs = jobs.filter(
             Q(title__icontains=keyword) |
             Q(company__icontains=keyword) |
             Q(description__icontains=keyword) |
             Q(requirements__icontains=keyword) |
-            Q(skills__skill__icontains=keyword)
-        ).distinct()
+            Q(jobskill__skill__icontains=keyword)
+        ).distinct('id')
 
     if location:
         jobs = jobs.filter(location__icontains=location)
 
+    # Cache count before serialization to avoid another COUNT query
+    jobs_list = list(jobs)
+    
     serializer = JobDescriptionSerializer(
-        jobs,
+        jobs_list,
         many=True,
         context={"request": request}
     )
 
     return Response(
         {
-            "count": jobs.count(),
+            "count": len(jobs_list),
             "results": serializer.data
         }
     )
@@ -110,7 +206,11 @@ def get_jobs(request):
 def get_recruiter_jobs(request):
     jobs = (
         JobDescription.objects
-        .filter(posted_by=request.user, is_active=True)
+        .filter(
+            posted_by=request.user,
+            organization=get_user_organization(request.user),
+            is_active=True,
+        )
         .prefetch_related("skills")
         .annotate(applicant_count=Count("applications"))
         .order_by("-created_at")
@@ -131,11 +231,7 @@ def get_recruiter_jobs(request):
 # GET SINGLE JOB
 @api_view(["GET"])
 def get_job(request, job_id):
-
-    job = get_object_or_404(
-        JobDescription.objects.prefetch_related("skills"),
-        id=job_id
-    )
+    job = _get_browseable_job_or_404(request, job_id)
 
     serializer = JobDescriptionSerializer(
         job,
@@ -198,6 +294,7 @@ def delete_job(request, job_id):
 
 # ADD MULTIPLE SKILLS
 class AddJobSkills(APIView):
+    permission_classes = [IsAuthenticated, IsRecruiter]
 
     def post(self, request):
 
@@ -208,7 +305,12 @@ class AddJobSkills(APIView):
             job_id = serializer.validated_data["job_id"]
             skills = serializer.validated_data["skills"]
 
-            job = get_object_or_404(JobDescription, id=job_id)
+            job = get_object_or_404(
+                JobDescription,
+                id=job_id,
+                posted_by=request.user,
+                organization=get_user_organization(request.user),
+            )
 
             created_skills = []
 
@@ -237,7 +339,11 @@ class AddJobSkills(APIView):
 def get_recruiter_applicants(request):
     jobs = (
         JobDescription.objects
-        .filter(posted_by=request.user, is_active=True)
+        .filter(
+            posted_by=request.user,
+            organization=get_user_organization(request.user),
+            is_active=True,
+        )
         .prefetch_related("applications__candidate")
         .order_by("-created_at")
     )
@@ -320,10 +426,13 @@ def apply_for_job(request, job_id):
 
         # Get and validate job
         try:
-            job = JobDescription.objects.get(id=job_id, is_active=True)
+            job = JobDescription.objects.select_related("organization").get(id=job_id, is_active=True)
         except JobDescription.DoesNotExist:
             from core.exceptions import NotFoundError
             raise NotFoundError("Job not found or inactive")
+        if not _can_candidate_access_job(request, job):
+            from core.exceptions import NotFoundError
+            raise NotFoundError("Job not found or unavailable")
 
         # Validate input data
         data = request.data
@@ -335,14 +444,26 @@ def apply_for_job(request, job_id):
         expected_salary = validate_salary(data.get('expected_salary'))
 
         # Create or update candidate profile
-        candidate = Candidate.objects.filter(user=request.user).first()
+        candidate = Candidate.objects.filter(
+            user=request.user,
+            organization=get_user_organization(request.user),
+        ).first()
         created = False
         if not candidate:
-            candidate = Candidate.objects.filter(email=request.user.email).first()
+            candidate = Candidate.objects.filter(
+                email=request.user.email,
+                organization=get_user_organization(request.user),
+            ).first()
+
+        target_organization = job.organization
+        current_user_organization = get_user_organization(request.user)
+        if current_user_organization != target_organization:
+            raise AuthorizationError("You can only apply within your organization")
 
         if not candidate:
             candidate = Candidate(
                 user=request.user,
+                organization=target_organization,
                 email=request.user.email,
                 full_name=full_name,
                 phone=phone,
@@ -352,6 +473,10 @@ def apply_for_job(request, job_id):
             created = True
         elif candidate.user_id != request.user.id:
             candidate.user = request.user
+
+        if candidate.organization != target_organization:
+            raise AuthorizationError("Candidate profile belongs to another organization")
+        ensure_candidate_organization(candidate, target_organization)
 
         # Update candidate information if not created
         candidate.email = request.user.email
@@ -433,6 +558,7 @@ def apply_for_job(request, job_id):
                 # Create resume record
                 resume = Resume.objects.create(
                     candidate=candidate,
+                    organization=candidate.organization,
                     file_name=resume_file.name,
                     cloud_url=cloud_url,
                     storage_backend=storage_backend,
@@ -446,7 +572,11 @@ def apply_for_job(request, job_id):
                     is_primary=False,
                 )
 
-                Resume.objects.filter(candidate=candidate, is_active=True).exclude(id=resume.id).update(is_primary=False)
+                Resume.objects.filter(
+                    candidate=candidate,
+                    organization=candidate.organization,
+                    is_active=True,
+                ).exclude(id=resume.id).update(is_primary=False)
                 resume.is_primary = True
                 resume.save(update_fields=['is_primary', 'updated_at'])
 
@@ -518,6 +648,7 @@ def get_my_applications(request):
 
     data = []
     for app in applications:
+        progress = build_application_progress(app)
         data.append({
             "id": app.id,
             "job": {
@@ -527,13 +658,22 @@ def get_my_applications(request):
                 "location": app.job.location,
                 "salary_min": app.job.salary_min,
                 "salary_max": app.job.salary_max,
+                "organization_name": app.job.organization.name,
+                "organization_slug": app.job.organization.slug,
             },
             "status": app.status,
+            "status_label": progress["status_label"],
             "applied_at": app.applied_at,
             "updated_at": app.updated_at,
             "cover_letter": app.cover_letter,
             "expected_salary": app.expected_salary,
             "available_from": app.available_from,
+            "available_stages": progress["available_stages"],
+            "current_stage": progress["current_stage"],
+            "current_stage_index": progress["current_stage_index"],
+            "next_stage": progress["next_stage"],
+            "next_update_at": progress["next_update_at"],
+            "is_terminal": progress["is_terminal"],
         })
 
     return Response({

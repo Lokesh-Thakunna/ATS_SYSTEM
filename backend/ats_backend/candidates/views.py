@@ -1,8 +1,12 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from django.contrib.auth.models import User
 from authentication.models import UserProfile
+from authentication.organization import (
+    ensure_candidate_organization,
+    get_user_organization,
+    resolve_candidate_organization,
+)
 from .models import Candidate
 from resumes.models import Resume
 from resumes.utils import build_resume_access_url, get_active_resume_for_candidate
@@ -70,18 +74,26 @@ def create_or_update_candidate_profile(request):
     except UserProfile.DoesNotExist:
         return Response({"error": "User profile not found"}, status=400)
 
-    candidate = Candidate.objects.filter(user=request.user).first()
+    candidate = Candidate.objects.filter(
+        user=request.user,
+        organization=get_user_organization(request.user),
+    ).first()
     created = False
 
     if not candidate:
-        candidate = Candidate.objects.filter(email=request.user.email).first()
+        candidate = Candidate.objects.filter(
+            email=request.user.email,
+            organization=get_user_organization(request.user),
+        ).first()
 
     if candidate:
         if candidate.user_id != request.user.id:
             candidate.user = request.user
     else:
+        organization = resolve_candidate_organization(user=request.user)
         candidate = Candidate(
             user=request.user,
+            organization=organization,
             email=request.user.email,
             full_name=request.data.get("full_name", request.user.get_full_name() or request.user.username),
             phone=request.data.get("phone", ""),
@@ -90,6 +102,9 @@ def create_or_update_candidate_profile(request):
         )
         created = True
 
+    # Keep the profile pinned to the authenticated user's organization so
+    # candidate records do not drift across tenant boundaries.
+    ensure_candidate_organization(candidate, get_user_organization(request.user))
     candidate.email = request.user.email
     candidate.full_name = request.data.get("full_name", candidate.full_name)
     candidate.phone = request.data.get("phone", candidate.phone)
@@ -109,7 +124,11 @@ def get_candidate_resumes(request):
     """Get all resumes for the current user"""
     try:
         candidate = Candidate.get_for_user(request.user)
-        resumes = Resume.objects.filter(candidate=candidate, is_active=True).prefetch_related('skills', 'projects').order_by('-uploaded_at')
+        resumes = Resume.objects.filter(
+            candidate=candidate,
+            organization=candidate.organization,
+            is_active=True,
+        ).prefetch_related('skills', 'projects').order_by('-uploaded_at')
 
         resume_data = []
         for resume in resumes:

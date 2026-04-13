@@ -1,0 +1,123 @@
+{# authentication/templates/emails/recruiter_invite.html #}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #4f46e5;
+            padding-bottom: 20px;
+        }
+        .header h1 {
+            color: #4f46e5;
+            margin: 0;
+            font-size: 28px;
+        }
+        .content {
+            margin: 30px 0;
+        }
+        .invite-box {
+            background-color: #f0f4ff;
+            border-left: 4px solid #4f46e5;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .button {
+            display: inline-block;
+            background-color: #4f46e5;
+            color: white;
+            padding: 14px 40px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: bold;
+            margin: 20px 0;
+            font-size: 16px;
+        }
+        .button:hover {
+            background-color: #3d35c1;
+        }
+        .info-box {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        .footer {
+            border-top: 1px solid #ddd;
+            margin-top: 30px;
+            padding-top: 20px;
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>You've Been Invited!</h1>
+            <p>Join {{ organization_name }} on ATS</p>
+        </div>
+
+        <div class="content">
+            <p>Hello {{ recruiter_email }},</p>
+            
+            <p><strong>{{ invited_by }}</strong> has invited you to join <strong>{{ organization_name }}</strong> as a Recruiter on the ATS platform.</p>
+
+            <div class="invite-box">
+                <p style="margin: 0 0 20px 0;">Click the button below to accept your invitation and get started:</p>
+                <a href="{{ invite_url }}" class="button">Accept Invitation</a>
+                <p style="margin: 15px 0 0 0; font-size: 12px; color: #666;">This link expires in {{ expiry_days }} days</p>
+            </div>
+
+            <h3>What you'll be able to do:</h3>
+            <ul style="line-height: 2; margin: 15px 0;">
+                <li>✓ Post and manage job openings</li>
+                <li>✓ Review candidate applications</li>
+                <li>✓ Collaborate with team members</li>
+                <li>✓ Track hiring pipeline with advanced analytics</li>
+                <li>✓ Manage candidate communications</li>
+            </ul>
+
+            <div class="info-box">
+                <strong>📌 Invitation Details:</strong><br>
+                Organization: {{ organization_name }}<br>
+                Role: Recruiter<br>
+                Invited by: {{ invited_by }}<br>
+                Expires in: {{ expiry_days }} days
+            </div>
+
+            <p style="margin-top: 30px;">
+                If you have questions about this invitation, please contact <strong>{{ invited_by }}</strong> directly.<br>
+                For general support, reach out to <a href="mailto:{{ support_email }}">{{ support_email }}</a>.
+            </p>
+        </div>
+
+        <div class="footer">
+            <p>This is an invitation email from ATS. If you believe this was sent to you in error, you can ignore this email.</p>
+            <p>&copy; 2026 ATS Platform. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

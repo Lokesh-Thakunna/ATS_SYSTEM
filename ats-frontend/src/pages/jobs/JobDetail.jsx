@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import {
   MapPin, DollarSign, Clock, ArrowLeft,
   Send, AlertCircle, FileText, Mail, Phone, CalendarDays,
@@ -218,10 +218,21 @@ const ApplyModal = ({ open, onClose, jobId, jobTitle }) => {
 };
 
 const JobDetail = () => {
-  const { id } = useParams();
-  const { job, loading, error } = useJob(id);
+  const { id, organizationSlug: routeOrganizationSlug } = useParams();
+  const [searchParams] = useSearchParams();
+  const queryOrganizationSlug = searchParams.get('organization_slug') || '';
+  const organizationSlug = routeOrganizationSlug || queryOrganizationSlug;
+  const { job, loading, error } = useJob(
+    id,
+    organizationSlug ? { organization_slug: organizationSlug } : {},
+  );
   const { user } = useAuth();
   const [applyOpen, setApplyOpen] = useState(false);
+  const jobsPath = routeOrganizationSlug
+    ? `/careers/${routeOrganizationSlug}`
+    : queryOrganizationSlug
+      ? `/jobs?organization_slug=${encodeURIComponent(queryOrganizationSlug)}`
+      : '/jobs';
 
   if (loading) return <PageLoader />;
 
@@ -230,14 +241,14 @@ const JobDetail = () => {
       <div className="card py-16 text-center">
         <AlertCircle size={40} className="mx-auto mb-3 text-red-300" />
         <p className="mb-4 text-gray-600">{error || 'Job not found'}</p>
-        <Link to="/jobs" className="btn-secondary">Back to Jobs</Link>
+        <Link to={jobsPath} className="btn-secondary">Back to Jobs</Link>
       </div>
     );
   }
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <Link to="/jobs" className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition-colors hover:text-slate-800">
+      <Link to={jobsPath} className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition-colors hover:text-slate-800">
         <ArrowLeft size={15} /> Back to Jobs
       </Link>
 

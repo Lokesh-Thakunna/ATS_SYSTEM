@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Briefcase, FileText,
-  PlusCircle, Users, ShieldCheck, ChevronRight, Pencil, LogOut,
+  PlusCircle, Users, ShieldCheck, ChevronRight, Pencil, LogOut, Building2,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -34,9 +34,24 @@ const adminNav = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/jobs', icon: Briefcase, label: 'All Jobs' },
   { to: '/admin/recruiters', icon: ShieldCheck, label: 'Recruiters' },
+  { to: '/admin/organization-settings', icon: Building2, label: 'Organization' },
 ];
 
-const navByRole = { recruiter: recruiterNav, admin: adminNav };
+const navByRole = { 
+  recruiter: recruiterNav, 
+  admin: adminNav,
+  SUPER_ADMIN: adminNav,
+  ORG_ADMIN: adminNav,
+};
+
+const Section = ({ title, items, onClick }) => (
+  <div>
+    <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400">{title}</p>
+    <div className="space-y-1">
+      {items.map((item) => <NavItem key={item.to} {...item} onClick={onClick} />)}
+    </div>
+  </div>
+);
 
 const NavItem = ({ to, icon, label, onClick }) => {
   const Icon = icon;
@@ -75,6 +90,7 @@ const Sidebar = ({ open, onClose }) => {
         <div
           className="fixed inset-0 z-30 bg-slate-900/25 backdrop-blur-sm lg:hidden"
           onClick={onClose}
+          role="presentation"
         />
       )}
 
@@ -92,30 +108,26 @@ const Sidebar = ({ open, onClose }) => {
               ATS<span className="text-indigo-600">SYSTEM</span>
             </p>
             <p className="mt-1 text-xs font-medium text-emerald-600">{isCandidate ? 'Candidate Portal' : 'Workspace'}</p>
+            {!isCandidate && user?.organization?.name && (
+              <p className="mt-2 text-xs text-slate-500">{user.organization.name}</p>
+            )}
           </div>
 
           {isCandidate ? (
             <div className="mt-6 space-y-6">
               {candidateSections.map((section) => (
-                <div key={section.title}>
-                  <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400">{section.title}</p>
-                  <div className="space-y-1">
-                    {section.items.map((item) => <NavItem key={item.to} {...item} onClick={onClose} />)}
-                  </div>
-                </div>
+                <Section key={section.title} title={section.title} items={section.items} onClick={onClose} />
               ))}
 
-              <div>
-                <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400">Account</p>
-                <button
-                  type="button"
-                  onClick={() => { onClose?.(); logout(); }}
-                  className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-rose-600 transition-colors hover:bg-rose-50"
-                >
-                  <LogOut size={17} />
-                  <span className="flex-1 text-left">Sign Out</span>
-                </button>
-              </div>
+              <Section title="Account" items={[]} onClick={onClose} />
+              <button
+                type="button"
+                onClick={() => { onClose?.(); logout(); }}
+                className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-rose-600 transition-colors hover:bg-rose-50"
+              >
+                <LogOut size={17} />
+                <span className="flex-1 text-left">Sign Out</span>
+              </button>
             </div>
           ) : (
             <nav className="mt-6 space-y-1">

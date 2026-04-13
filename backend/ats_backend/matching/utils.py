@@ -725,7 +725,10 @@ def update_match_scores_for_resume(resume_id, persist=False, limit=None):
         return []
 
     max_jobs = limit or DEFAULT_MATCHING_JOB_LIMIT
-    jobs = JobDescription.objects.filter(is_active=True).prefetch_related("skills")[:max_jobs]
+    jobs = JobDescription.objects.filter(
+        is_active=True,
+        organization=resume.organization,
+    ).prefetch_related("skills")[:max_jobs]
     results = []
 
     for job in jobs:
@@ -764,7 +767,11 @@ def get_match_score_for_resume_and_job(resume_id, job_id):
     if not resume:
         return None
 
-    job = JobDescription.objects.filter(id=job_id, is_active=True).prefetch_related("skills").first()
+    job = JobDescription.objects.filter(
+        id=job_id,
+        is_active=True,
+        organization=resume.organization,
+    ).prefetch_related("skills").first()
     if not job:
         return None
 

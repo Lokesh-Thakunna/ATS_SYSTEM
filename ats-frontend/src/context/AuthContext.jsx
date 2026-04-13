@@ -1,20 +1,31 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authService } from '../services/authService';
+import { normalizeRole } from '../utils/roles';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
+  // Bootstrap the stored session once so route guards do not flash incorrectly.
   const [user, setUser] = useState(() => {
     try {
       const stored = localStorage.getItem('ats_user');
-      if (stored) return JSON.parse(stored);
+      if (stored) {
+        const parsedUser = JSON.parse(stored);
+        return { ...parsedUser, role: normalizeRole(parsedUser?.role) };
+      }
     } catch {
       // ignore
     }
     return null;
   });
   const [token, setToken] = useState(() => localStorage.getItem('ats_token') || null);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    setLoading(false);
+  }, []);
+
+  // Shared logout keeps browser storage and in-memory auth state aligned.
   const logout = useCallback(() => {
     localStorage.removeItem('ats_token');
     localStorage.removeItem('ats_user');
@@ -22,10 +33,20 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   }, []);
 
+  // User updates always pass through the same role normalization step.
   const updateUser = useCallback((updates) => {
-    setUser((current) => (current ? { ...current, ...updates } : current));
+    setUser((current) => (
+      current
+        ? {
+            ...current,
+            ...updates,
+            role: normalizeRole(updates?.role ?? current.role),
+          }
+        : current
+    ));
   }, []);
 
+  // Persist the auth session after login, logout, or profile updates.
   useEffect(() => {
     if (token) {
       localStorage.setItem('ats_token', token);
@@ -43,11 +64,12 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     const data = await authService.login(credentials);
     const { access, user: userData } = data;
+    const normalizedUser = { ...userData, role: normalizeRole(userData?.role) };
     localStorage.setItem('ats_token', access);
-    localStorage.setItem('ats_user', JSON.stringify(userData));
+    localStorage.setItem('ats_user', JSON.stringify(normalizedUser));
     setToken(access);
-    setUser(userData);
-    return userData;
+    setUser(normalizedUser);
+    return normalizedUser;
   };
 
   const register = async (formData) => {
@@ -55,10 +77,10 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
-  const isRole = (role) => user?.role === role;
+  const isRole = (role) => normalizeRole(user?.role) === normalizeRole(role);
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, register, updateUser, isRole }}>
+    <AuthContext.Provider value={{ user, token, loading, login, logout, register, updateUser, isRole }}>
       {children}
     </AuthContext.Provider>
   );

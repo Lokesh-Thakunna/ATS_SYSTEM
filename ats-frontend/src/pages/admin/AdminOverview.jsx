@@ -5,8 +5,10 @@ import toast from 'react-hot-toast';
 import { authService } from '../../services/authService';
 import { jobsService } from '../../services/jobsService';
 import { PageLoader } from '../../components/ui/Spinner';
+import { useAuth } from '../../context/AuthContext';
 
 const AdminOverview = () => {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [recruiterCount, setRecruiterCount] = useState(0);
   const [jobCount, setJobCount] = useState(0);
@@ -21,8 +23,9 @@ const AdminOverview = () => {
           jobsService.getJobs(),
         ]);
 
-        setRecruiterCount(recruiters.length);
-        setRecentRecruiters(recruiters.slice(0, 4));
+        const recruiterList = Array.isArray(recruiters?.results) ? recruiters.results : [];
+        setRecruiterCount(recruiterList.length);
+        setRecentRecruiters(recruiterList.slice(0, 4));
         setJobCount(jobs.count || jobs.results?.length || 0);
       } catch (error) {
         toast.error(error.message || 'Failed to load admin overview');
@@ -40,8 +43,10 @@ const AdminOverview = () => {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">Admin Dashboard</h1>
-          <p className="mt-1 text-slate-500">Monitor recruiter access and platform activity from one place.</p>
+          <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+            {user?.is_platform_admin ? 'Platform Admin Dashboard' : 'Organization Admin Dashboard'}
+          </h1>
+          <p className="mt-1 text-slate-500">Monitor recruiter access and organization activity from one place.</p>
         </div>
         <Link to="/admin/recruiters" className="btn-primary w-full justify-center sm:w-auto">
           <Users size={16} /> Manage Recruiters
@@ -54,8 +59,8 @@ const AdminOverview = () => {
             <ShieldCheck size={22} className="text-white" />
           </div>
           <div>
-            <p className="text-sm text-slate-500">Admin Access</p>
-            <p className="mt-0.5 font-semibold text-slate-800">Recruiter onboarding and control</p>
+            <p className="text-sm text-slate-500">Onboarding Control</p>
+            <p className="mt-0.5 font-semibold text-slate-800">Organization admins manage recruiters</p>
           </div>
         </div>
 
@@ -84,7 +89,7 @@ const AdminOverview = () => {
         <div className="flex items-center justify-between border-b border-slate-100 px-4 py-4 sm:px-6">
           <div>
             <h2 className="font-semibold text-slate-900">Recent Recruiters</h2>
-            <p className="mt-1 text-sm text-slate-500">Newest active recruiter accounts on the platform.</p>
+            <p className="mt-1 text-sm text-slate-500">Newest active recruiter accounts in your accessible scope.</p>
           </div>
           <Link to="/admin/recruiters" className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700">
             View all <ChevronRight size={15} />
@@ -101,7 +106,7 @@ const AdminOverview = () => {
               <div key={recruiter.id} className="flex flex-col gap-2 px-4 py-4 sm:px-6">
                 <p className="font-semibold text-slate-900">{recruiter.full_name}</p>
                 <p className="text-sm text-slate-500">{recruiter.email}</p>
-                <p className="text-sm text-slate-500">{recruiter.company_name || 'No company added yet'}</p>
+                <p className="text-sm text-slate-500">{recruiter.organization_name || recruiter.company_name || 'Organization not assigned yet'}</p>
               </div>
             ))}
           </div>

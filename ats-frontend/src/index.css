@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Syne:wght@600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,9 +7,9 @@
 @layer base {
   * { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
-  body { margin: 0; overflow-x: hidden; font-family: 'DM Sans', system-ui, sans-serif; color: #1f2937; background: #f3f5fb; -webkit-font-smoothing: antialiased; }
+  body { margin: 0; overflow-x: hidden; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #1f2937; background: #f3f5fb; -webkit-font-smoothing: antialiased; }
   #root { min-height: 100vh; }
-  h1, h2, h3 { font-family: 'Syne', system-ui, sans-serif; }
+  h1, h2, h3 { font-family: 'Outfit', system-ui, sans-serif; }
 }
 
 @layer components {

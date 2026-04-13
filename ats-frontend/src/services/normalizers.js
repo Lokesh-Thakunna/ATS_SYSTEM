@@ -1,3 +1,5 @@
+import { normalizeRole } from '../utils/roles';
+
 const APPLICATION_STATUS_ALIASES = {
   applied: 'applied',
   pending: 'applied',
@@ -56,7 +58,15 @@ export const normalizeUser = (payload = {}) => {
     first_name: payload.first_name ?? fullName.split(' ')[0] ?? '',
     last_name: payload.last_name ?? fullName.split(' ').slice(1).join(' '),
     full_name: fullName || payload.email || '',
-    role: payload.role ?? 'candidate',
+    role: normalizeRole(payload.role),
+    is_platform_admin: Boolean(payload.is_platform_admin),
+    organization: payload.organization
+      ? {
+          id: payload.organization.id ?? null,
+          name: payload.organization.name ?? '',
+          slug: payload.organization.slug ?? '',
+        }
+      : null,
   };
 };
 
@@ -65,6 +75,8 @@ export const normalizeJob = (job = {}) => ({
   company: job.company ?? '',
   type: job.type ?? job.job_type ?? '',
   requirements: job.requirements ?? '',
+  organization_name: job.organization_name ?? job.organization?.name ?? '',
+  organization_slug: job.organization_slug ?? job.organization?.slug ?? '',
   skills: Array.isArray(job.skills)
     ? job.skills
     : Array.isArray(job.skills_list)
@@ -95,6 +107,13 @@ export const normalizeApplication = (application = {}) => ({
   ...application,
   job: normalizeJob(application.job || {}),
   status: normalizeApplicationStatus(application.status),
+  status_label: application.status_label ?? '',
   applied_at: application.applied_at || null,
   updated_at: application.updated_at || application.applied_at || null,
+  available_stages: Array.isArray(application.available_stages) ? application.available_stages : [],
+  current_stage: application.current_stage ?? '',
+  current_stage_index: Number.isInteger(application.current_stage_index) ? application.current_stage_index : null,
+  next_stage: application.next_stage ?? '',
+  next_update_at: application.next_update_at ?? null,
+  is_terminal: Boolean(application.is_terminal),
 });

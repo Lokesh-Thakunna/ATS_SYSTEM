@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -8,6 +8,8 @@ import Spinner from '../../components/ui/Spinner';
 const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const organizationSlug = searchParams.get('organization_slug') || '';
 
   const [form, setForm]       = useState({ email: '', password: '' });
   const [showPw, setShowPw]   = useState(false);
@@ -28,11 +30,29 @@ const Login = () => {
     setLoading(true);
     try {
       const user = await login(form);
-      toast.success(`Welcome back, ${user.first_name || user.email}!`);
-      navigate('/dashboard');
+      const displayName = user.first_name || user.full_name || user.email;
+      toast.success(`Welcome back, ${displayName}!`);
+      
+      // Redirect based on user role
+      if (user.role === 'super_admin') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
-      toast.error(err.message || 'Invalid credentials');
-    } finally { setLoading(false); }
+      const errorMessage = err.type === 'NETWORK' 
+        ? 'Network error. Please check your connection.'
+        : err.type === 'TIMEOUT'
+        ? 'Request timed out. Please try again.'
+        : err.message || 'Invalid credentials';
+      
+      toast.error(errorMessage);
+      
+      // Clear password field on error for security
+      setForm(prev => ({ ...prev, password: '' }));
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   const field = (key) => ({
@@ -46,6 +66,11 @@ const Login = () => {
       <div className="mb-8">
         <h1 className="mb-2 text-3xl font-bold text-gray-900 sm:text-4xl">Sign in</h1>
         <p className="text-gray-500">Access your ATSSYSTEM account</p>
+        {organizationSlug && (
+          <p className="mt-3 inline-flex rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700">
+            Org: {organizationSlug}
+          </p>
+        )}
       </div>
 
       {/* Card */}
@@ -100,7 +125,7 @@ const Login = () => {
       {/* Register link */}
       <p className="mt-6 text-center text-sm text-gray-500">
         Don't have an account?{' '}
-        <Link to="/register" className="text-blue-600 font-semibold hover:underline">
+        <Link to={organizationSlug ? `/register?organization_slug=${encodeURIComponent(organizationSlug)}` : '/register'} className="text-blue-600 font-semibold hover:underline">
           Create one free
         </Link>
       </p>

@@ -9,42 +9,42 @@ const STATUS_META = {
   applied: {
     label: 'Pending',
     pill: 'bg-amber-50 text-amber-700 border border-amber-200',
-    stages: ['Applied', 'Reviewing', 'Shortlisted'],
+    stages: ['Applied', 'Under Review', 'Shortlisted', 'Interview', 'Hired'],
     activeStage: 0,
     accent: 'bg-amber-500',
   },
   under_review: {
-    label: 'Reviewing',
+    label: 'Under Review',
     pill: 'bg-sky-50 text-sky-700 border border-sky-200',
-    stages: ['Applied', 'Reviewing', 'Shortlisted'],
+    stages: ['Applied', 'Under Review', 'Shortlisted', 'Interview', 'Hired'],
     activeStage: 1,
     accent: 'bg-sky-500',
   },
   interviewed: {
-    label: 'Reviewing',
-    pill: 'bg-sky-50 text-sky-700 border border-sky-200',
-    stages: ['Applied', 'Reviewing', 'Shortlisted'],
-    activeStage: 1,
-    accent: 'bg-sky-500',
+    label: 'Interview',
+    pill: 'bg-violet-50 text-violet-700 border border-violet-200',
+    stages: ['Applied', 'Under Review', 'Shortlisted', 'Interview', 'Hired'],
+    activeStage: 3,
+    accent: 'bg-violet-500',
   },
   shortlisted: {
     label: 'Shortlisted',
     pill: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
-    stages: ['Applied', 'Reviewing', 'Shortlisted'],
+    stages: ['Applied', 'Under Review', 'Shortlisted', 'Interview', 'Hired'],
     activeStage: 2,
     accent: 'bg-emerald-500',
   },
   hired: {
     label: 'Hired',
     pill: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
-    stages: ['Applied', 'Reviewing', 'Shortlisted', 'Hired'],
-    activeStage: 3,
+    stages: ['Applied', 'Under Review', 'Shortlisted', 'Interview', 'Hired'],
+    activeStage: 4,
     accent: 'bg-emerald-500',
   },
   rejected: {
     label: 'Rejected',
     pill: 'bg-rose-50 text-rose-700 border border-rose-200',
-    stages: ['Applied', 'Reviewing', 'Rejected'],
+    stages: ['Applied', 'Under Review', 'Rejected'],
     activeStage: 2,
     accent: 'bg-rose-500',
   },
@@ -59,7 +59,7 @@ const ProgressNode = ({ label, active, completed, accent }) => (
         ? `${accent} border-transparent text-white shadow-sm`
         : 'border-slate-200 bg-white text-slate-400'
     }`}>
-      {completed ? '✓' : label[0]}
+      {completed ? 'OK' : label[0]}
     </div>
     <span className={`mt-2 text-[11px] font-medium ${completed || active ? 'text-slate-700' : 'text-slate-400'}`}>
       {label}
@@ -67,19 +67,39 @@ const ProgressNode = ({ label, active, completed, accent }) => (
   </div>
 );
 
-const ProgressLine = ({ total, accentClass, activeStage }) => (
-  <div className="absolute left-[13%] right-[13%] top-3 h-[2px] rounded-full bg-slate-200">
-    <div
-      className={`h-full rounded-full ${accentClass}`}
-      style={{ width: `${(activeStage / (total - 1)) * 100}%` }}
-    />
-  </div>
-);
+const ProgressLine = ({ total, accentClass, activeStage }) => {
+  const safeActiveStage = Number.isFinite(activeStage) ? activeStage : 0;
+  const width = total > 1 ? (safeActiveStage / (total - 1)) * 100 : 0;
+
+  return (
+    <div className="absolute left-[13%] right-[13%] top-3 h-[2px] rounded-full bg-slate-200">
+      <div
+        className={`h-full rounded-full ${accentClass}`}
+        style={{ width: `${width}%` }}
+      />
+    </div>
+  );
+};
 
 const ApplicationStatusCard = ({ application, resumeUrl, onReapply }) => {
   const normalizedStatus = normalizeApplicationStatus(application.status);
   const meta = getStatusMeta(normalizedStatus);
-  const tag = application.job?.type || application.job?.location || application.job?.company || application.job?.title;
+  const stages = application.available_stages?.length > 0 ? application.available_stages : meta.stages;
+  const currentStageIndex = Number.isInteger(application.current_stage_index)
+    ? application.current_stage_index
+    : meta.activeStage;
+  const currentStageLabel = application.current_stage || stages[currentStageIndex] || meta.label;
+  const nextUpdateLabel = application.next_update_at
+    ? `Next update by ${formatDate(application.next_update_at)}`
+    : application.next_stage
+      ? `Next stage: ${application.next_stage}`
+      : 'No further updates pending';
+  const tag = [
+    application.job?.company,
+    application.job?.organization_name,
+    application.job?.location,
+    application.job?.type,
+  ].filter(Boolean).join(' | ') || application.job?.title || 'Application in progress';
 
   const handleOpenResume = async () => {
     try {
@@ -103,20 +123,20 @@ const ApplicationStatusCard = ({ application, resumeUrl, onReapply }) => {
             </p>
           </div>
           <span className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${meta.pill}`}>
-            {meta.label}
+            {application.status_label || meta.label}
           </span>
         </div>
 
         <div className="rounded-3xl border border-slate-100 bg-slate-50/70 p-4">
           <div className="-mx-1 overflow-x-auto px-1">
             <div className="relative flex min-w-[320px] items-start justify-between gap-2 sm:min-w-0">
-              <ProgressLine total={meta.stages.length} accentClass={meta.accent} activeStage={meta.activeStage} />
-              {meta.stages.map((stage, index) => (
+              <ProgressLine total={stages.length} accentClass={meta.accent} activeStage={currentStageIndex} />
+              {stages.map((stage, index) => (
                 <ProgressNode
                   key={stage}
                   label={stage}
-                  active={index === meta.activeStage}
-                  completed={index < meta.activeStage}
+                  active={index === currentStageIndex}
+                  completed={index < currentStageIndex}
                   accent={meta.accent}
                 />
               ))}
@@ -127,7 +147,11 @@ const ApplicationStatusCard = ({ application, resumeUrl, onReapply }) => {
         <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
           <div className="flex items-center gap-2">
             <BriefcaseBusiness size={14} className="text-slate-400" />
-            <span>{tag || 'Application in progress'}</span>
+            <span>{tag}</span>
+          </div>
+          <div className="mt-2 text-xs text-slate-400">
+            <p>Current stage: {currentStageLabel}</p>
+            <p>{nextUpdateLabel}</p>
           </div>
         </div>
 

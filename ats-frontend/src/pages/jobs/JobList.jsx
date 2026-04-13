@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { Search, MapPin, DollarSign, Clock, ChevronRight, Briefcase, SlidersHorizontal } from 'lucide-react';
 import { useJobs } from '../../hooks/useJobs';
 import { formatSalary, timeAgo, jobTypeBadge, truncate } from '../../utils/helpers';
 import { PageLoader } from '../../components/ui/Spinner';
 
-const JobCard = ({ job }) => (
+const JobCard = ({ job, jobHref }) => (
   <Link
-    to={`/jobs/${job.id}`}
+    to={jobHref}
     className="group block card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-lg"
   >
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -67,10 +67,30 @@ const JobCard = ({ job }) => (
   </Link>
 );
 
-const JobList = () => {
+const JobList = ({ showHeader = true }) => {
+  const params = useParams();
+  const [searchParams] = useSearchParams();
+  const routeOrganizationSlug = params.organizationSlug || '';
+  const queryOrganizationSlug = searchParams.get('organization_slug') || '';
+  const organizationSlug = routeOrganizationSlug || queryOrganizationSlug;
   const [filters, setFilters] = useState({ keyword: '', location: '' });
   const [applied, setApplied] = useState({});
-  const { jobs, loading, error, refetch } = useJobs(applied);
+  const { jobs, loading, error, refetch } = useJobs({
+    ...applied,
+    ...(organizationSlug ? { organization_slug: organizationSlug } : {}),
+  });
+
+  const buildJobHref = (jobId) => {
+    if (routeOrganizationSlug) {
+      return `/careers/${routeOrganizationSlug}/jobs/${jobId}`;
+    }
+
+    if (queryOrganizationSlug) {
+      return `/jobs/${jobId}?organization_slug=${encodeURIComponent(queryOrganizationSlug)}`;
+    }
+
+    return `/jobs/${jobId}`;
+  };
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -79,11 +99,17 @@ const JobList = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Browse Jobs</h1>
-        <p className="text-gray-500 mt-1">{jobs.length} opportunities available</p>
-      </div>
+      {showHeader && (
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Browse Jobs</h1>
+          <p className="text-gray-500 mt-1">{jobs.length} opportunities available</p>
+          {organizationSlug && (
+            <p className="mt-3 inline-flex rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700">
+              Organization: {organizationSlug}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Filters */}
       <form onSubmit={handleSearch} className="card p-4">
@@ -135,7 +161,7 @@ const JobList = () => {
       {/* Job cards */}
       {!loading && !error && (
         <div className="space-y-4">
-          {jobs.map((job) => <JobCard key={job.id} job={job} />)}
+          {jobs.map((job) => <JobCard key={job.id} job={job} jobHref={buildJobHref(job.id)} />)}
         </div>
       )}
     </div>

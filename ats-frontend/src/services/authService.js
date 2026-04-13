@@ -23,6 +23,7 @@ export const authService = {
       phone: data.phone,
       summary: data.summary,
       experience: data.experience,
+      organization_slug: data.organization_slug,
     });
     return response.data;
   },
@@ -32,7 +33,8 @@ export const authService = {
       email: data.email,
       password: data.password,
       full_name: buildFullName(data),
-      company_name: data.company_name,
+      organization_name: data.organization_name,
+      organization_slug: data.organization_slug,
     });
     return response.data;
   },
@@ -44,19 +46,62 @@ export const authService = {
       full_name: buildFullName(data),
       first_name: data.first_name,
       last_name: data.last_name,
-      company_name: data.company_name,
     });
     return response.data;
   },
 
   getRecruiters: async () => {
     const response = await api.get('/auth/recruiters/');
-    const payload = response.data || {};
-    return Array.isArray(payload.results) ? payload.results : [];
+    return response.data || {};
   },
 
   deactivateRecruiter: async (userId) => {
     const response = await api.patch(`/auth/recruiter/deactivate/${userId}/`);
     return response.data;
+  },
+
+  getOrganizationSettings: async () => {
+    const response = await api.get('/auth/organization/settings/');
+    return response.data || {};
+  },
+
+  updateOrganizationSettings: async (data) => {
+    const response = await api.patch('/auth/organization/settings/', data);
+    return response.data || {};
+  },
+
+  getOrganizationInvites: async () => {
+    const response = await api.get('/auth/organization/invites/');
+    return response.data || {};
+  },
+
+  createOrganizationInvite: async (data) => {
+    const response = await api.post('/auth/organization/invites/', data);
+    return response.data || {};
+  },
+
+  resendOrganizationInvite: async (inviteId) => {
+    const response = await api.post(`/auth/organization/invites/${inviteId}/resend/`);
+    return response.data || {};
+  },
+
+  revokeOrganizationInvite: async (inviteId) => {
+    const response = await api.post(`/auth/organization/invites/${inviteId}/revoke/`);
+    return response.data || {};
+  },
+
+  getOrganizationInviteByToken: async (token) => {
+    const response = await api.get(`/auth/organization/invites/lookup/${token}/`);
+    return response.data || {};
+  },
+
+  acceptOrganizationInvite: async (data) => {
+    const response = await api.post('/auth/organization/invites/accept/', data);
+    return response.data || {};
+  },
+
+  getPublicOrganizationProfile: async (organizationSlug) => {
+    const response = await api.get(`/auth/organization/public/${organizationSlug}/`);
+    return response.data || {};
   },
 };

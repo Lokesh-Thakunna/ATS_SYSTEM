@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { User, Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -8,6 +8,8 @@ import Spinner from '../../components/ui/Spinner';
 const Register = () => {
   const { register } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const organizationSlug = searchParams.get('organization_slug') || '';
 
   const [form, setForm] = useState({
     first_name: '', last_name: '', email: '', password: '', confirm_password: '',
@@ -37,9 +39,9 @@ const Register = () => {
     if (Object.keys(e).length) { setErrors(e); return; }
     setLoading(true);
     try {
-      await register({ ...form, role: 'candidate' });
+      await register({ ...form, role: 'candidate', organization_slug: organizationSlug });
       toast.success('Account created! Please sign in.');
-      navigate('/login');
+      navigate(organizationSlug ? `/login?organization_slug=${encodeURIComponent(organizationSlug)}` : '/login');
     } catch (err) {
       toast.error(err.message || 'Registration failed');
     } finally { setLoading(false); }
@@ -57,6 +59,11 @@ const Register = () => {
       <div className="mb-8">
         <h1 className="mb-2 text-3xl font-bold text-gray-900 sm:text-4xl">Create account</h1>
         <p className="text-gray-500">Start your job search journey today</p>
+        {organizationSlug && (
+          <p className="mt-3 inline-flex rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700">
+            Org: {organizationSlug}
+          </p>
+        )}
       </div>
 
       <div className="card shadow-card-lg">
@@ -133,7 +140,7 @@ const Register = () => {
 
       <p className="mt-6 text-center text-sm text-gray-500">
         Already have an account?{' '}
-        <Link to="/login" className="text-blue-600 font-semibold hover:underline">Sign in</Link>
+        <Link to={organizationSlug ? `/login?organization_slug=${encodeURIComponent(organizationSlug)}` : '/login'} className="text-blue-600 font-semibold hover:underline">Sign in</Link>
       </p>
     </div>
   );

@@ -7,6 +7,8 @@ class JobDescriptionSerializer(serializers.ModelSerializer):
     type = serializers.CharField(source="job_type", required=False, allow_blank=True, allow_null=True)
     requirements = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     applicant_count = serializers.SerializerMethodField()
+    organization_name = serializers.CharField(source="organization.name", read_only=True)
+    organization_slug = serializers.CharField(source="organization.slug", read_only=True)
 
     skills = serializers.ListField(
         child=serializers.CharField(),
@@ -33,17 +35,22 @@ class JobDescriptionSerializer(serializers.ModelSerializer):
             "skills",
             "skills_list",
             "applicant_count",
+            "organization_name",
+            "organization_slug",
             "created_at",
         ]
 
         read_only_fields = ["embedding", "created_at", "applicant_count"]
 
     def get_skills_list(self, obj):
-        skills = JobSkill.objects.filter(job=obj)
-        return [skill.skill for skill in skills]
+        # Access prefetched skills from context to avoid N+1 queries
+        if hasattr(obj, '_prefetched_objects_cache'):
+            return [skill.skill for skill in obj.jobskill_set.all()]
+        return [skill.skill for skill in JobSkill.objects.filter(job=obj)]
 
     def get_applicant_count(self, obj):
-        return getattr(obj, "applicant_count", obj.applications.count())
+        # Use annotated count to avoid N+1 COUNT queries
+        return getattr(obj, "applicant_count", 0)
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

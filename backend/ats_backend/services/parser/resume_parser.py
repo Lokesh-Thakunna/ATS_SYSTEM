@@ -1,14 +1,11 @@
 import pdfplumber
 import io
 import docx
-import os
 import re
-from typing import Optional
 
 from .skills_extractor import extract_skills
 from .experience_extractor import extract_experience
 from .project_extractor import extract_projects
-
 
 def extract_text_from_file(file_bytes, mime_type):
     """
@@ -34,7 +31,6 @@ def extract_text_from_file(file_bytes, mime_type):
         except Exception:
             return ""
 
-
 def extract_text_from_pdf(file_bytes):
     """
     Enhanced PDF text extraction with better error handling
@@ -50,14 +46,13 @@ def extract_text_from_pdf(file_bytes):
                         page_text = re.sub(r'\n+', '\n', page_text)  # Multiple newlines
                         page_text = re.sub(r' +', ' ', page_text)    # Multiple spaces
                         text += page_text + "\n"
-                except Exception as e:
+                except Exception:
                     # Skip problematic pages
                     continue
             return text.strip()
-    except Exception as e:
+    except Exception:
         # PDF may be corrupt, password-protected, or image-based
         return ""
-
 
 def extract_text_from_docx(file_bytes):
     """
@@ -80,9 +75,8 @@ def extract_text_from_docx(file_bytes):
                         text += cell_text + " "
 
         return text.strip()
-    except Exception as e:
+    except Exception:
         return ""
-
 
 def extract_text_from_doc(file_bytes):
     """
@@ -94,7 +88,6 @@ def extract_text_from_doc(file_bytes):
         return file_bytes.decode('utf-8', errors='ignore')
     except Exception:
         return ""
-
 
 def preprocess_text(text: str) -> str:
     """
@@ -116,7 +109,6 @@ def preprocess_text(text: str) -> str:
     text = re.sub(r'[•●○▪]', '•', text)
 
     return text.strip()
-
 
 def parse_resume(file_bytes, mime_type='application/pdf'):
     """

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, MapPin, DollarSign, ChevronRight, RefreshCw } from 'lucide-react';
 import { resumeService, matchingService } from '../../services/resumeService';
@@ -22,7 +22,7 @@ const MatchesPage = () => {
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true); setError(null);
     try {
       const resumes = await resumeService.getResumes();
@@ -34,9 +34,9 @@ const MatchesPage = () => {
     } catch (err) {
       setError(err.message || 'Failed to load matches');
     } finally { setLoading(false); }
-  };
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
 
   if (loading) return <PageLoader />;
 

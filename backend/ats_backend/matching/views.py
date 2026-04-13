@@ -5,6 +5,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from authentication.organization import get_request_organization, get_user_organization
+from authentication.permissions import get_user_role
 from authentication.permissions import IsRecruiter
 from candidates.models import Candidate
 from jobs.models import JobApplication, JobDescription
@@ -106,7 +108,10 @@ def _serialize_ranked_application(item, request=None):
 def _get_recruiter_owned_job_or_404(request, job_id):
     queryset = JobDescription.objects.filter(is_active=True)
     if not (request.user.is_superuser or request.user.is_staff):
-        queryset = queryset.filter(posted_by=request.user)
+        queryset = queryset.filter(
+            posted_by=request.user,
+            organization=get_user_organization(request.user),
+        )
     return get_object_or_404(queryset, id=job_id)
 
 
@@ -121,14 +126,20 @@ def _parse_top_n(request, default=20, minimum=1, maximum=200):
 
 @api_view(["GET"])
 def match_jobs_for_resume(request, resume_id):
-    resume = Resume.objects.select_related("candidate").filter(id=resume_id).first()
+    resume = Resume.objects.select_related("candidate", "organization").filter(
+        id=resume_id,
+        organization=get_request_organization(request),
+    ).first()
     if not resume:
         return Response({"error": "Resume not found"}, status=status.HTTP_404_NOT_FOUND)
 
     scores = update_match_scores_for_resume(resume_id, persist=False)
     job_map = {
         job.id: job
-        for job in JobDescription.objects.filter(id__in=[score["job_id"] for score in scores[:20]])
+        for job in JobDescription.objects.filter(
+            id__in=[score["job_id"] for score in scores[:20]],
+            organization=resume.organization,
+        )
     }
 
     formatted_scores = []
@@ -151,7 +162,20 @@ def match_jobs_for_resume(request, resume_id):
 
 @api_view(["GET"])
 def match_jobs_for_candidate(request, candidate_id):
-    candidate = Candidate.objects.filter(id=candidate_id).first()
+    candidate_queryset = Candidate.objects.filter(
+        id=candidate_id,
+        organization=get_request_organization(request),
+    )
+    if getattr(request.user, "is_authenticated", False) and not request.user.is_staff and not request.user.is_superuser:
+        user_role = get_user_role(request.user)
+        if user_role == "candidate":
+            candidate_queryset = candidate_queryset.filter(user=request.user)
+        else:
+            candidate_queryset = candidate_queryset.filter(
+                organization=get_user_organization(request.user),
+            )
+
+    candidate = candidate_queryset.first()
     if not candidate:
         return Response({"error": "Candidate not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -162,7 +186,10 @@ def match_jobs_for_candidate(request, candidate_id):
     scores = update_match_scores_for_resume(latest_resume.id, persist=False)
     job_map = {
         job.id: job
-        for job in JobDescription.objects.filter(id__in=[score["job_id"] for score in scores[:20]])
+        for job in JobDescription.objects.filter(
+            id__in=[score["job_id"] for score in scores[:20]],
+            organization=latest_resume.organization,
+        )
     }
 
     formatted_scores = []
@@ -186,12 +213,19 @@ def match_jobs_for_candidate(request, candidate_id):
 
 @api_view(["GET"])
 def match_candidates_for_job(request, job_id):
-    job = JobDescription.objects.filter(id=job_id, is_active=True).prefetch_related("skills").first()
+    job = JobDescription.objects.filter(
+        id=job_id,
+        is_active=True,
+        organization=get_request_organization(request),
+    ).prefetch_related("skills").first()
     if not job:
         return Response({"error": "Job not found or inactive"}, status=status.HTTP_404_NOT_FOUND)
 
     top_n = _parse_top_n(request)
-    resumes = Resume.objects.filter(is_active=True).select_related("candidate").prefetch_related(
+    resumes = Resume.objects.filter(
+        is_active=True,
+        organization=job.organization,
+    ).select_related("candidate").prefetch_related(
         "skills",
         "education",
         "experiences",

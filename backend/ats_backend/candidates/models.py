@@ -10,6 +10,13 @@ class Candidate(models.Model):
         blank=True,
         related_name="candidate_profile",
     )
+    # Organization scopes candidate records so each tenant only accesses
+    # profiles that belong to its own ATS workspace.
+    organization = models.ForeignKey(
+        "authentication.Organization",
+        on_delete=models.PROTECT,
+        related_name="candidates",
+    )
     full_name = models.CharField(max_length=150)
     email = models.EmailField(max_length=150, unique=True)
     phone = models.CharField(max_length=20, blank=True, null=True)
@@ -44,7 +51,15 @@ class Candidate(models.Model):
 
     @classmethod
     def get_for_user(cls, user):
+        from authentication.organization import get_user_organization
+
         candidate = cls.objects.filter(user=user).first()
         if candidate:
             return candidate
-        return cls.objects.get(email=user.email)
+
+        organization = get_user_organization(user)
+        candidate = cls.objects.filter(email=user.email, organization=organization).first()
+        if candidate:
+            return candidate
+
+        raise cls.DoesNotExist()
