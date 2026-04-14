@@ -5,16 +5,15 @@ import toast from 'react-hot-toast';
 export const useJobs = (params = {}) => {
   const serializedParams = JSON.stringify(params);
   const stableParams = useMemo(() => JSON.parse(serializedParams), [serializedParams]);
-  const [jobs, setJobs]       = useState([]);
+  const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState(null);
+  const [error, setError] = useState(null);
 
-  const fetchJobs = useCallback(async () => {
+  const fetchJobs = useCallback(async (config = {}) => {
     setLoading(true);
     setError(null);
-    const abortController = new AbortController();
     try {
-      const data = await jobsService.getJobs(stableParams, { signal: abortController.signal });
+      const data = await jobsService.getJobs(stableParams, config);
       setJobs(Array.isArray(data) ? data : data.results || []);
     } catch (err) {
       if (err.name !== 'AbortError') {
@@ -23,10 +22,13 @@ export const useJobs = (params = {}) => {
     } finally {
       setLoading(false);
     }
-    return () => abortController.abort();
   }, [stableParams]);
 
-  useEffect(() => { fetchJobs(); }, [fetchJobs]);
+  useEffect(() => {
+    const abortController = new AbortController();
+    fetchJobs({ signal: abortController.signal });
+    return () => abortController.abort();
+  }, [fetchJobs]);
 
   return { jobs, loading, error, refetch: fetchJobs };
 };
@@ -34,11 +36,11 @@ export const useJobs = (params = {}) => {
 export const useJob = (id, params = {}) => {
   const serializedParams = JSON.stringify(params);
   const stableParams = useMemo(() => JSON.parse(serializedParams), [serializedParams]);
-  const [job, setJob]         = useState(null);
+  const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(Boolean(id));
-  const [error, setError]     = useState(null);
+  const [error, setError] = useState(null);
 
-  const fetchJob = useCallback(async () => {
+  const fetchJob = useCallback(async (config = {}) => {
     if (!id) {
       setJob(null);
       setError(null);
@@ -48,10 +50,9 @@ export const useJob = (id, params = {}) => {
 
     setLoading(true);
     setError(null);
-    const abortController = new AbortController();
 
     try {
-      const nextJob = await jobsService.getJob(id, stableParams, { signal: abortController.signal });
+      const nextJob = await jobsService.getJob(id, stableParams, config);
       setJob(nextJob);
     } catch (err) {
       if (err.name !== 'AbortError') {
@@ -60,11 +61,12 @@ export const useJob = (id, params = {}) => {
     } finally {
       setLoading(false);
     }
-    return () => abortController.abort();
   }, [id, stableParams]);
 
   useEffect(() => {
-    void fetchJob();
+    const abortController = new AbortController();
+    void fetchJob({ signal: abortController.signal });
+    return () => abortController.abort();
   }, [fetchJob]);
 
   return { job, loading, error };

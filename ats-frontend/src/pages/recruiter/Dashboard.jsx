@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
-  Briefcase, Users, Calendar, FileText, Plus, Search, Filter,
-  Star, Clock, CheckCircle, AlertCircle, TrendingUp, Eye,
-  MessageSquare, Send, XCircle, ArrowUp, ArrowDown
+  Briefcase, Calendar, FileText, Plus, Search,
+  Star, CheckCircle, TrendingUp, Eye,
+  MessageSquare, Send, ArrowUp, ArrowDown
 } from 'lucide-react';
+import api from '../../services/api';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
-import Input from '../../components/ui/Input';
 
 const RecruiterDashboard = () => {
   const [metrics, setMetrics] = useState({
@@ -22,33 +22,42 @@ const RecruiterDashboard = () => {
   const [recentApplications, setRecentApplications] = useState([]);
   const [matchedCandidates, setMatchedCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchDashboardData();
   }, []);
 
+  // Load recruiter dashboard data from the jobs endpoints.
+  // We compute metrics from the backend responses instead of relying on stale v1 routes.
   const fetchDashboardData = async () => {
     try {
-      // Fetch metrics
-      const metricsResponse = await fetch('/api/v1/recruiter/metrics');
-      const metricsData = await metricsResponse.json();
-      setMetrics(metricsData);
+      const [jobsResponse, applicantsResponse] = await Promise.all([
+        api.get('/jobs/recruiter/mine/', { params: { limit: 5 } }),
+        api.get('/jobs/recruiter/applicants/', { params: { limit: 5 } }),
+      ]);
 
-      // Fetch recent jobs
-      const jobsResponse = await fetch('/api/v1/recruiter/jobs?limit=5');
-      const jobsData = await jobsResponse.json();
+      const jobsData = jobsResponse.data || {};
+      const applicantsData = applicantsResponse.data || {};
+      const recentApps = Array.isArray(applicantsData.results) ? applicantsData.results.flatMap((job) => job.applications || []) : [];
+      const interviewCount = recentApps.filter((app) => app.status === 'interview').length;
+      const offerCount = recentApps.filter((app) => app.status === 'offer').length;
+
+      setMetrics({
+        activeJobs: { count: Array.isArray(jobsData.results) ? jobsData.results.length : jobsData.count || 0, change: 0 },
+        applications: { count: applicantsData.total_applicants || recentApps.length, change: 0 },
+        interviews: { count: interviewCount, change: 0 },
+        offers: { count: offerCount, change: 0 },
+      });
       setRecentJobs(jobsData.results || []);
-
-      // Fetch recent applications
-      const appsResponse = await fetch('/api/v1/recruiter/applications?limit=5');
-      const appsData = await appsResponse.json();
-      setRecentApplications(appsData.results || []);
-
-      // Fetch AI matched candidates
-      const matchesResponse = await fetch('/api/v1/recruiter/matched-candidates?limit=5');
-      const matchesData = await matchesResponse.json();
-      setMatchedCandidates(matchesData.results || []);
+      setRecentApplications(recentApps.slice(0, 5));
+      setMatchedCandidates(recentApps.slice(0, 5).map((application) => ({
+        id: application.id,
+        candidate_name: application.candidate?.full_name || 'Unknown',
+        job_title: application.job?.title || 'Unknown',
+        status: application.status,
+        applied_at: application.applied_at,
+        rating: application.candidate?.total_experience_years || 0,
+      })));
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
     } finally {
@@ -56,7 +65,7 @@ const RecruiterDashboard = () => {
     }
   };
 
-  const MetricCard = ({ title, value, change, icon: Icon, color = 'blue' }) => (
+  const MetricCard = ({ title, value, change, icon, color = 'blue' }) => (
     <Card className="p-6">
       <div className="flex items-center justify-between">
         <div>
@@ -77,7 +86,7 @@ const RecruiterDashboard = () => {
           </div>
         </div>
         <div className={`p-3 rounded-full bg-${color}-100`}>
-          <Icon className={`h-6 w-6 text-${color}-600`} />
+          {icon}
         </div>
       </div>
     </Card>
@@ -151,28 +160,28 @@ const RecruiterDashboard = () => {
           title="Active Jobs"
           value={metrics.activeJobs.count}
           change={metrics.activeJobs.change}
-          icon={Briefcase}
+          icon={<Briefcase className="h-6 w-6 text-blue-600" />}
           color="blue"
         />
         <MetricCard
           title="Applications"
           value={metrics.applications.count}
           change={metrics.applications.change}
-          icon={FileText}
+          icon={<FileText className="h-6 w-6 text-green-600" />}
           color="green"
         />
         <MetricCard
           title="Interviews"
           value={metrics.interviews.count}
           change={metrics.interviews.change}
-          icon={Calendar}
+          icon={<Calendar className="h-6 w-6 text-purple-600" />}
           color="purple"
         />
         <MetricCard
           title="Offers Sent"
           value={metrics.offers.count}
           change={metrics.offers.change}
-          icon={Send}
+          icon={<Send className="h-6 w-6 text-orange-600" />}
           color="orange"
         />
       </div>

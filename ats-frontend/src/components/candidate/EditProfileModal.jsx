@@ -1,102 +1,72 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
+
+import Button from '../ui/Button';
+import Input from '../ui/Input';
 import Modal from '../ui/Modal';
+import Spinner from '../ui/Spinner';
 
-const splitFullName = (fullName = '') => {
-  const parts = fullName.trim().split(/\s+/).filter(Boolean);
-  return {
-    first_name: parts[0] || '',
-    last_name: parts.slice(1).join(' '),
+const buildInitialState = (profile = {}) => ({
+  full_name: profile.full_name || '',
+  phone: profile.phone || '',
+  summary: profile.summary || '',
+});
+
+const EditProfileModal = ({ open, profile, saving, onClose, onSave }) => {
+  // Form state mirrors the editable candidate profile fields.
+  const [form, setForm] = useState(buildInitialState(profile));
+
+  // When the incoming profile changes, reset the form so the modal stays in sync.
+  useEffect(() => {
+    setForm(buildInitialState(profile));
+  }, [profile]);
+
+  const handleChange = (field) => (event) => {
+    setForm((current) => ({ ...current, [field]: event.target.value }));
   };
-};
-
-const buildInitialForm = (profile) => {
-  const { first_name, last_name } = splitFullName(profile?.full_name);
-
-  return {
-    first_name,
-    last_name,
-    email: profile?.email || '',
-    phone: profile?.phone || '',
-    summary: profile?.summary || '',
-  };
-};
-
-const EditProfileForm = ({ profile, saving, onClose, onSave }) => {
-  const initialForm = useMemo(() => buildInitialForm(profile), [profile]);
-  const [form, setForm] = useState(initialForm);
-
-  const setField = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }));
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    await onSave?.({
-      full_name: `${form.first_name} ${form.last_name}`.trim(),
-      phone: form.phone,
-      summary: form.summary,
-    });
+    await onSave?.(form);
   };
 
   return (
-    <>
-      <p className="mb-5 text-sm text-slate-500">Keep your profile up to date to improve your match rate.</p>
+    <Modal open={open} onClose={onClose} title="Edit Candidate Profile" size="md">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="label">First Name</label>
-            <input className="input" value={form.first_name} onChange={setField('first_name')} />
-          </div>
-          <div>
-            <label className="label">Last Name</label>
-            <input className="input" value={form.last_name} onChange={setField('last_name')} />
-          </div>
-        </div>
-
+        {/* Basic identity fields help the candidate keep their profile up to date. */}
         <div>
-          <label className="label">Email Address</label>
-          <input className="input bg-slate-50" value={form.email} readOnly />
+          <label className="label">Full Name</label>
+          <Input value={form.full_name} onChange={handleChange('full_name')} placeholder="Your full name" required />
         </div>
 
         <div>
           <label className="label">Phone Number</label>
-          <input className="input" value={form.phone} onChange={setField('phone')} />
+          <Input value={form.phone} onChange={handleChange('phone')} placeholder="+91 98765 43210" />
         </div>
 
+        {/* Summary field gives the candidate a quick professional introduction. */}
         <div>
           <label className="label">Professional Summary</label>
           <textarea
-            rows={5}
-            className="input resize-none"
-            placeholder="Briefly describe your skills and experience..."
             value={form.summary}
-            onChange={setField('summary')}
+            onChange={handleChange('summary')}
+            rows={5}
+            className="input min-h-32 resize-y"
+            placeholder="Write a short summary about your experience and strengths"
           />
         </div>
 
-        <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row">
-          <button type="submit" disabled={saving} className="btn-primary flex-1 justify-center">
-            {saving ? 'Saving...' : 'Save Changes'}
-          </button>
-          <button type="button" onClick={onClose} className="btn-secondary flex-1 justify-center">
+        {/* Footer actions keep save and close actions obvious. */}
+        <div className="flex flex-col-reverse gap-3 sm:flex-row">
+          <Button type="button" variant="outline" className="w-full justify-center" onClick={onClose}>
             Cancel
-          </button>
+          </Button>
+          <Button type="submit" className="w-full justify-center" disabled={saving}>
+            {saving ? <Spinner size="sm" /> : 'Save Changes'}
+          </Button>
         </div>
       </form>
-    </>
+    </Modal>
   );
 };
-
-const EditProfileModal = ({ open, profile, saving, onClose, onSave }) => (
-  <Modal open={open} onClose={onClose} title="Edit Profile" size="md">
-    {open && (
-      <EditProfileForm
-        key={`${profile?.id || profile?.email || 'profile'}-${open ? 'open' : 'closed'}`}
-        profile={profile}
-        saving={saving}
-        onClose={onClose}
-        onSave={onSave}
-      />
-    )}
-  </Modal>
-);
 
 export default EditProfileModal;

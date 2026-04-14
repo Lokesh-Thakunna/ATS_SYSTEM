@@ -1,4 +1,4 @@
-import { normalizeRole } from '../utils/roles';
+import { resolveUserRole } from '../utils/roles';
 
 const APPLICATION_STATUS_ALIASES = {
   applied: 'applied',
@@ -51,6 +51,7 @@ export const getApplicationStatusCategory = (status) => {
 
 export const normalizeUser = (payload = {}) => {
   const fullName = payload.full_name || [payload.first_name, payload.last_name].filter(Boolean).join(' ').trim();
+  const isPlatformAdmin = Boolean(payload.is_platform_admin);
 
   return {
     id: payload.id ?? payload.user_id ?? null,
@@ -58,8 +59,8 @@ export const normalizeUser = (payload = {}) => {
     first_name: payload.first_name ?? fullName.split(' ')[0] ?? '',
     last_name: payload.last_name ?? fullName.split(' ').slice(1).join(' '),
     full_name: fullName || payload.email || '',
-    role: normalizeRole(payload.role),
-    is_platform_admin: Boolean(payload.is_platform_admin),
+    role: resolveUserRole({ role: payload.role, is_platform_admin: isPlatformAdmin }),
+    is_platform_admin: isPlatformAdmin,
     organization: payload.organization
       ? {
           id: payload.organization.id ?? null,

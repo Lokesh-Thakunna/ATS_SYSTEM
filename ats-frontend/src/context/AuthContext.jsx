@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authService } from '../services/authService';
-import { normalizeRole } from '../utils/roles';
+import { normalizeRole, resolveUserRole } from '../utils/roles';
 
 const AuthContext = createContext(null);
 
@@ -11,7 +11,7 @@ export const AuthProvider = ({ children }) => {
       const stored = localStorage.getItem('ats_user');
       if (stored) {
         const parsedUser = JSON.parse(stored);
-        return { ...parsedUser, role: normalizeRole(parsedUser?.role) };
+        return { ...parsedUser, role: resolveUserRole(parsedUser) };
       }
     } catch {
       // ignore
@@ -19,11 +19,7 @@ export const AuthProvider = ({ children }) => {
     return null;
   });
   const [token, setToken] = useState(() => localStorage.getItem('ats_token') || null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    setLoading(false);
-  }, []);
+  const [loading] = useState(false);
 
   // Shared logout keeps browser storage and in-memory auth state aligned.
   const logout = useCallback(() => {
@@ -40,7 +36,7 @@ export const AuthProvider = ({ children }) => {
         ? {
             ...current,
             ...updates,
-            role: normalizeRole(updates?.role ?? current.role),
+            role: resolveUserRole({ ...current, ...updates }),
           }
         : current
     ));
@@ -64,7 +60,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     const data = await authService.login(credentials);
     const { access, user: userData } = data;
-    const normalizedUser = { ...userData, role: normalizeRole(userData?.role) };
+    const normalizedUser = { ...userData, role: resolveUserRole(userData) };
     localStorage.setItem('ats_token', access);
     localStorage.setItem('ats_user', JSON.stringify(normalizedUser));
     setToken(access);
@@ -77,7 +73,7 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
-  const isRole = (role) => normalizeRole(user?.role) === normalizeRole(role);
+  const isRole = (role) => resolveUserRole(user) === normalizeRole(role);
 
   return (
     <AuthContext.Provider value={{ user, token, loading, login, logout, register, updateUser, isRole }}>

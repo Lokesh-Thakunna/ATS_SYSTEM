@@ -15,8 +15,9 @@ const sanitizeJobPayload = (data = {}) => ({
 });
 
 export const jobsService = {
-  getJobs: async (params = {}) => {
-    const response = await api.get('/jobs/', { params });
+  // Public and tenant-aware job listing endpoint.
+  getJobs: async (params = {}, config = {}) => {
+    const response = await api.get('/jobs/', { ...config, params });
     const payload = response.data || {};
     return {
       ...payload,
@@ -24,8 +25,9 @@ export const jobsService = {
     };
   },
 
-  getJob: async (id, params = {}) => {
-    const response = await api.get(`/jobs/${id}/`, { params });
+  // Single job loader used by public job detail and in-app job detail screens.
+  getJob: async (id, params = {}, config = {}) => {
+    const response = await api.get(`/jobs/${id}/`, { ...config, params });
     return normalizeJob(response.data);
   },
 

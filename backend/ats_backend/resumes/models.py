@@ -1,7 +1,13 @@
+import os
+
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from pgvector.django import VectorField
 from candidates.models import Candidate
 from django.core.exceptions import ValidationError
+
+
+USE_PGVECTOR = os.getenv("USE_PGVECTOR", "false").lower() == "true"
 
 
 class Resume(models.Model):
@@ -45,7 +51,11 @@ class Resume(models.Model):
 
     raw_text = models.TextField(blank=True, null=True)
 
-    embedding = VectorField(null=True, blank=True)
+    embedding = (
+        VectorField(null=True, blank=True)
+        if USE_PGVECTOR
+        else ArrayField(models.FloatField(), null=True, blank=True)
+    )
 
     parsing_status = models.CharField(
         max_length=50,

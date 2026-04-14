@@ -1,8 +1,14 @@
+import os
+
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from pgvector.django import VectorField
 from django.contrib.auth.models import User
 from candidates.models import Candidate
 from django.core.exceptions import ValidationError
+
+
+USE_PGVECTOR = os.getenv("USE_PGVECTOR", "false").lower() == "true"
 
 
 class JobDescription(models.Model):
@@ -28,8 +34,12 @@ class JobDescription(models.Model):
 
     min_experience = models.IntegerField(blank=True, null=True)
 
-    # Store job embedding in pgvector
-    embedding = VectorField(null=True, blank=True)
+    # Keep production vector support, but allow tests/environments without pgvector extension.
+    embedding = (
+        VectorField(null=True, blank=True)
+        if USE_PGVECTOR
+        else ArrayField(models.FloatField(), null=True, blank=True)
+    )
 
     created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)

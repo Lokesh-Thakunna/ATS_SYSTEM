@@ -1,12 +1,16 @@
-from django.db import models
-from django.contrib.auth import get_user_model
 import uuid
+import os
+
+from django.contrib.auth import get_user_model
+from django.contrib.postgres.fields import ArrayField
+from django.db import models
 from pgvector.django import VectorField
 from resumes.models import Resume
 from jobs.models import JobDescription
 from authentication.models import Organization
 
 User = get_user_model()
+USE_PGVECTOR = os.getenv("USE_PGVECTOR", "false").lower() == "true"
 
 
 class MatchScore(models.Model):
@@ -90,7 +94,11 @@ class JobEmbedding(models.Model):
     """AI embeddings for job descriptions"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     job = models.OneToOneField(JobDescription, on_delete=models.CASCADE, related_name='job_embedding')
-    embedding = VectorField(dimensions=768)  # Using pgvector
+    embedding = (
+        VectorField(dimensions=768)
+        if USE_PGVECTOR
+        else ArrayField(models.FloatField(), size=768)
+    )
     text_content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -109,7 +117,11 @@ class CandidateEmbedding(models.Model):
     """AI embeddings for candidate profiles"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     resume = models.OneToOneField(Resume, on_delete=models.CASCADE, related_name='candidate_embedding')
-    embedding = VectorField(dimensions=768)  # Using pgvector
+    embedding = (
+        VectorField(dimensions=768)
+        if USE_PGVECTOR
+        else ArrayField(models.FloatField(), size=768)
+    )
     text_content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

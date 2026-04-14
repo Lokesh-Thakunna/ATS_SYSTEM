@@ -4,14 +4,16 @@ import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import Spinner from '../../components/ui/Spinner';
+import { ROLE } from '../../utils/roles';
 
 const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const organizationSlug = searchParams.get('organization_slug') || '';
+  const prefilledEmail = searchParams.get('email') || '';
 
-  const [form, setForm]       = useState({ email: '', password: '' });
+  const [form, setForm]       = useState({ email: prefilledEmail, password: '' });
   const [showPw, setShowPw]   = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors]   = useState({});
@@ -33,12 +35,8 @@ const Login = () => {
       const displayName = user.first_name || user.full_name || user.email;
       toast.success(`Welcome back, ${displayName}!`);
       
-      // Redirect based on user role
-      if (user.role === 'super_admin') {
-        navigate('/admin/dashboard');
-      } else {
-        navigate('/dashboard');
-      }
+      // Redirect the user into the workspace that matches their access level.
+      navigate(user.role === ROLE.SUPER_ADMIN ? '/admin/platform' : '/dashboard');
     } catch (err) {
       const errorMessage = err.type === 'NETWORK' 
         ? 'Network error. Please check your connection.'

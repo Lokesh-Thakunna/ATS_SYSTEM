@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowRight, Building2, CheckCircle2, Lock, Mail, ShieldCheck, User } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -8,7 +8,9 @@ import { authService } from '../../services/authService';
 
 const AcceptInvite = () => {
   const { token } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const inviteToken = token || searchParams.get('token') || '';
   const [invite, setInvite] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -24,7 +26,10 @@ const AcceptInvite = () => {
     const loadInvite = async () => {
       setLoading(true);
       try {
-        const payload = await authService.getOrganizationInviteByToken(token);
+        if (!inviteToken) {
+          throw new Error('Invite token missing');
+        }
+        const payload = await authService.getOrganizationInviteByToken(inviteToken);
         setInvite(payload);
       } catch (error) {
         toast.error(error.message || 'Invite not found');
@@ -34,7 +39,7 @@ const AcceptInvite = () => {
     };
 
     void loadInvite();
-  }, [token]);
+  }, [inviteToken]);
 
   const setField = (key) => (event) => {
     setForm((current) => ({ ...current, [key]: event.target.value }));
@@ -63,7 +68,7 @@ const AcceptInvite = () => {
     setSubmitting(true);
     try {
       const payload = await authService.acceptOrganizationInvite({
-        token,
+        token: inviteToken,
         full_name: form.full_name,
         password: form.password,
       });

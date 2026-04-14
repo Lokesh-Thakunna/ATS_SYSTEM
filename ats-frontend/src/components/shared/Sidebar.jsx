@@ -4,6 +4,7 @@ import {
   PlusCircle, Users, ShieldCheck, ChevronRight, Pencil, LogOut, Building2,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { ROLE } from '../../utils/roles';
 
 const candidateSections = [
   {
@@ -37,11 +38,15 @@ const adminNav = [
   { to: '/admin/organization-settings', icon: Building2, label: 'Organization' },
 ];
 
-const navByRole = { 
-  recruiter: recruiterNav, 
-  admin: adminNav,
-  SUPER_ADMIN: adminNav,
-  ORG_ADMIN: adminNav,
+const superAdminNav = [
+  { to: '/admin/platform', icon: LayoutDashboard, label: 'Platform' },
+  { to: '/admin/organizations', icon: Building2, label: 'Organizations' },
+];
+
+const navByRole = {
+  [ROLE.RECRUITER]: recruiterNav,
+  [ROLE.ORG_ADMIN]: adminNav,
+  [ROLE.SUPER_ADMIN]: superAdminNav,
 };
 
 const Section = ({ title, items, onClick }) => (
@@ -81,7 +86,7 @@ const NavItem = ({ to, icon, label, onClick }) => {
 
 const Sidebar = ({ open, onClose }) => {
   const { user, logout } = useAuth();
-  const isCandidate = user?.role === 'candidate';
+  const isCandidate = user?.role === ROLE.CANDIDATE;
   const navItems = navByRole[user?.role] || [];
 
   return (

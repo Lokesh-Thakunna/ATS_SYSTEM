@@ -110,9 +110,10 @@ def _resolve_login_user(identifier):
         return queryset.filter(id=int(raw_identifier)).first()
 
     normalized_email = raw_identifier.lower()
-    return queryset.filter(
+    candidates = queryset.filter(
         Q(email__iexact=normalized_email) | Q(username__iexact=raw_identifier)
-    ).first()
+    ).order_by("-is_active", "-is_superuser", "-id")
+    return candidates.first()
 
 
 def _build_growth_payload(queryset, date_field, window_days=30):
@@ -189,6 +190,30 @@ def _get_recent_activity():
 
     activities.sort(key=lambda item: item["sort_key"], reverse=True)
     return [{key: value for key, value in item.items() if key != "sort_key"} for item in activities[:6]]
+
+
+def _get_recruiter_company_name(recruiter):
+    """Safely resolve the recruiter display company without breaking on missing profiles."""
+    recruiter_profile = getattr(recruiter, "recruiterprofile", None)
+    if recruiter_profile and recruiter_profile.company_name:
+        return recruiter_profile.company_name
+
+    user_profile = getattr(recruiter, "userprofile", None)
+    organization = getattr(user_profile, "organization", None)
+    if organization and organization.name:
+        return organization.name
+
+    return ""
+
+
+def _get_recruiter_organization_payload(recruiter):
+    """Return organization name/slug safely for tenant-aware recruiter listing."""
+    user_profile = getattr(recruiter, "userprofile", None)
+    organization = getattr(user_profile, "organization", None)
+    return {
+        "name": getattr(organization, "name", ""),
+        "slug": getattr(organization, "slug", ""),
+    }
 
 
 # Public auth endpoints ------------------------------------------------------
@@ -545,21 +570,24 @@ def list_active_recruiters_view(request):
     if organization:
         recruiters = recruiters.filter(userprofile__organization=organization)
 
-    data = [
-        {
-            "id": recruiter.id,
-            "email": recruiter.email,
-            "first_name": recruiter.first_name,
-            "last_name": recruiter.last_name,
-            "full_name": recruiter.get_full_name().strip() or recruiter.email,
-            "company_name": getattr(recruiter.recruiterprofile, "company_name", "") or recruiter.userprofile.organization.name,
-            "date_joined": recruiter.date_joined,
-            "is_active": recruiter.is_active,
-            "organization_name": recruiter.userprofile.organization.name,
-            "organization_slug": recruiter.userprofile.organization.slug,
-        }
-        for recruiter in recruiters
-    ]
+    data = []
+    for recruiter in recruiters:
+        # Tenant-safe mapping: recruiter or organization profile can be absent on legacy rows.
+        organization_payload = _get_recruiter_organization_payload(recruiter)
+        data.append(
+            {
+                "id": recruiter.id,
+                "email": recruiter.email,
+                "first_name": recruiter.first_name,
+                "last_name": recruiter.last_name,
+                "full_name": recruiter.get_full_name().strip() or recruiter.email,
+                "company_name": _get_recruiter_company_name(recruiter),
+                "date_joined": recruiter.date_joined,
+                "is_active": recruiter.is_active,
+                "organization_name": organization_payload["name"],
+                "organization_slug": organization_payload["slug"],
+            }
+        )
 
     return Response(
         {

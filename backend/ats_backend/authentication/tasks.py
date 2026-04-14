@@ -36,7 +36,10 @@ def send_organization_registration_email(self, org_id, admin_email, org_name, te
         
         # Build URLs
         frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
-        login_url = f"{frontend_url}/login"
+        login_url = (
+            f"{frontend_url}/organization-registration"
+            f"?organization={organization.slug}&email={admin_email}"
+        )
         change_password_url = f"{frontend_url}/settings/security"
         
         context = {
@@ -114,7 +117,7 @@ def send_recruiter_invite_email(self, invite_id, recruiter_email, org_name, invi
         
         # Build invitation link
         frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
-        invite_url = f"{frontend_url}/invites/accept?token={invite_token}"
+        invite_url = f"{frontend_url}/invites/accept/{invite_token}"
         
         context = {
             'recruiter_email': recruiter_email,

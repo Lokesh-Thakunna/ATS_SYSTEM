@@ -5,6 +5,7 @@ import {
   TrendingUp, Clock, CheckCircle, Upload, Edit, Eye, Save,
   Building2, ArrowRight, Target, Award
 } from 'lucide-react';
+import api from '../../services/api';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
@@ -26,27 +27,31 @@ const CandidateDashboard = () => {
     fetchDashboardData();
   }, []);
 
+  // Load the candidate-facing dashboard content from backend APIs.
+  // The shared api instance attaches auth tokens and normalizes responses.
   const fetchDashboardData = async () => {
     try {
-      // Fetch profile
-      const profileResponse = await fetch('/api/v1/candidate/profile');
-      const profileData = await profileResponse.json();
+      const [profileResponse, jobsResponse, appsResponse] = await Promise.all([
+        api.get('/candidates/profile/'),
+        api.get('/jobs/', { params: { limit: 6 } }),
+        api.get('/jobs/applications/', { params: { limit: 5 } }),
+      ]);
+
+      const profileData = profileResponse.data || {};
+      const jobsData = jobsResponse.data || {};
+      const appsData = appsResponse.data || {};
+
       setProfile(profileData);
-
-      // Fetch recommended jobs
-      const jobsResponse = await fetch('/api/v1/candidate/recommended-jobs?limit=6');
-      const jobsData = await jobsResponse.json();
       setRecommendedJobs(jobsData.results || []);
-
-      // Fetch applications
-      const appsResponse = await fetch('/api/v1/candidate/applications?limit=5');
-      const appsData = await appsResponse.json();
       setApplications(appsData.results || []);
-
-      // Fetch stats
-      const statsResponse = await fetch('/api/v1/candidate/stats');
-      const statsData = await statsResponse.json();
-      setStats(statsData);
+      setStats({
+        profileViews: 0,
+        savedJobs: 0,
+        applicationsCount: Array.isArray(appsData.results) ? appsData.results.length : 0,
+        interviewsCount: Array.isArray(appsData.results)
+          ? appsData.results.filter((item) => item.status === 'interview').length
+          : 0,
+      });
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
     } finally {
