@@ -2,7 +2,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 from django.contrib.auth.models import User
 from authentication.models import Organization, OrganizationSettings, UserProfile
-from jobs.models import JobDescription, JobApplication
+from jobs.models import JobDescription, JobApplication, JobSkill
 
 
 class JobApplicationAPITest(TestCase):
@@ -79,6 +79,22 @@ class PublicJobBoardAccessTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)
         self.assertEqual(response.data['results'][0]['id'], self.public_job.id)
+        self.assertNotIn('embedding', response.data['results'][0])
+
+    def test_public_jobs_can_be_filtered_by_skill_keyword(self):
+        JobSkill.objects.create(job=self.public_job, skill='Django')
+
+        response = self.client.get(
+            '/api/jobs/',
+            {
+                'organization_slug': 'acme-hiring',
+                'keyword': 'django',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['id'], self.public_job.id)
 
     def test_private_jobs_are_hidden_from_public_job_board_requests(self):
         response = self.client.get('/api/jobs/', {'organization_slug': 'stealth-org'})
@@ -140,7 +156,7 @@ class AuthenticatedCandidateJobBoardAccessTest(TestCase):
             is_active=True,
         )
 
-    def test_authenticated_candidate_only_browses_own_organization_jobs(self):
+    def test_authenticated_candidate_browses_jobs_from_all_organizations(self):
         self.client.force_authenticate(user=self.candidate)
 
         response = self.client.get('/api/jobs/')
@@ -148,8 +164,8 @@ class AuthenticatedCandidateJobBoardAccessTest(TestCase):
         self.assertEqual(response.status_code, 200)
         returned_ids = {item['id'] for item in response.data['results']}
         self.assertIn(self.own_org_job.id, returned_ids)
-        self.assertNotIn(self.public_job.id, returned_ids)
-        self.assertNotIn(self.private_job.id, returned_ids)
+        self.assertIn(self.public_job.id, returned_ids)
+        self.assertIn(self.private_job.id, returned_ids)
 
     def test_authenticated_candidate_can_open_own_org_job_detail(self):
         self.client.force_authenticate(user=self.candidate)
@@ -159,17 +175,52 @@ class AuthenticatedCandidateJobBoardAccessTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['id'], self.own_org_job.id)
 
-    def test_authenticated_candidate_cannot_open_other_org_job_detail(self):
+    def test_authenticated_candidate_can_open_other_org_job_detail(self):
         self.client.force_authenticate(user=self.candidate)
 
         response = self.client.get(f'/api/jobs/{self.public_job.id}/')
 
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['id'], self.public_job.id)
 
-    def test_authenticated_candidate_cannot_query_other_org_by_slug(self):
+    def test_authenticated_candidate_can_query_other_org_by_slug(self):
         self.client.force_authenticate(user=self.candidate)
 
         response = self.client.get('/api/jobs/', {'organization_slug': 'public-org'})
 
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 200)
+        returned_ids = {item['id'] for item in response.data['results']}
+        self.assertIn(self.public_job.id, returned_ids)
+        self.assertNotIn(self.own_org_job.id, returned_ids)
+
+    def test_authenticated_candidate_can_query_private_org_by_slug(self):
+        self.client.force_authenticate(user=self.candidate)
+
+        response = self.client.get('/api/jobs/', {'organization_slug': 'private-org'})
+
+        self.assertEqual(response.status_code, 200)
+        returned_ids = {item['id'] for item in response.data['results']}
+        self.assertIn(self.private_job.id, returned_ids)
+        self.assertNotIn(self.own_org_job.id, returned_ids)
+
+    def test_authenticated_candidate_can_apply_to_other_org_job(self):
+        self.client.force_authenticate(user=self.candidate)
+
+        response = self.client.post(
+            f'/api/jobs/{self.public_job.id}/apply/',
+            {
+                'full_name': 'Candidate One',
+                'phone': '1234567890',
+                'cover_letter': 'Interested in this role',
+            },
+            format='multipart',
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(
+            JobApplication.objects.filter(
+                job=self.public_job,
+                candidate__user=self.candidate,
+            ).exists()
+        )
 

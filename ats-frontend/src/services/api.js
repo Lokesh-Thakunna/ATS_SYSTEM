@@ -30,6 +30,15 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (error) => {
+    if (error.code === 'ERR_CANCELED' || error.message === 'canceled') {
+      return Promise.reject({
+        type: 'CANCELED',
+        name: 'AbortError',
+        code: 'ERR_CANCELED',
+        message: 'Request canceled.',
+      });
+    }
+
     if (error.code === 'ECONNABORTED') {
       return Promise.reject({
         type: 'TIMEOUT',

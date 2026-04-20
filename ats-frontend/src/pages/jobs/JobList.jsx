@@ -4,8 +4,10 @@ import { Search, MapPin, DollarSign, Clock, ChevronRight, Briefcase, SlidersHori
 import { useJobs } from '../../hooks/useJobs';
 import { formatSalary, timeAgo, jobTypeBadge, truncate } from '../../utils/helpers';
 import { PageLoader } from '../../components/ui/Spinner';
+import { useAuth } from '../../context/AuthContext';
+import { normalizeRole, ROLE } from '../../utils/roles';
 
-const JobCard = ({ job, jobHref }) => (
+const JobCard = ({ job, jobHref, canApply }) => (
   <Link
     to={jobHref}
     className="group block card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-lg"
@@ -61,6 +63,11 @@ const JobCard = ({ job, jobHref }) => (
             {job.type}
           </span>
         )}
+        {canApply && (
+          <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+            Apply Now
+          </span>
+        )}
         <ChevronRight size={18} className="text-gray-300 group-hover:text-blue-400 mt-auto transition-colors" />
       </div>
     </div>
@@ -73,6 +80,8 @@ const JobList = ({ showHeader = true }) => {
   const routeOrganizationSlug = params.organizationSlug || '';
   const queryOrganizationSlug = searchParams.get('organization_slug') || '';
   const organizationSlug = routeOrganizationSlug || queryOrganizationSlug;
+  const { user } = useAuth();
+  const canApply = normalizeRole(user?.role) === ROLE.CANDIDATE;
   const [filters, setFilters] = useState({ keyword: '', location: '' });
   const [applied, setApplied] = useState({});
   const { jobs, loading, error, refetch } = useJobs({
@@ -161,7 +170,9 @@ const JobList = ({ showHeader = true }) => {
       {/* Job cards */}
       {!loading && !error && (
         <div className="space-y-4">
-          {jobs.map((job) => <JobCard key={job.id} job={job} jobHref={buildJobHref(job.id)} />)}
+          {jobs.map((job) => (
+            <JobCard key={job.id} job={job} jobHref={buildJobHref(job.id)} canApply={canApply} />
+          ))}
         </div>
       )}
     </div>

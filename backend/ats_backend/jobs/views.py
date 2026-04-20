@@ -6,13 +6,15 @@ from rest_framework import status
 from rest_framework.exceptions import NotFound
 
 from authentication.organization import (
-    ensure_candidate_organization,
+    get_organization_by_slug,
     get_or_create_organization_settings,
     get_public_organization_by_slug,
     get_request_organization,
     get_user_organization,
 )
 from authentication.permissions import IsRecruiter
+from authentication.models import UserProfile
+from authentication.permissions import get_user_role
 
 from django.shortcuts import get_object_or_404
 from django.conf import settings
@@ -87,12 +89,29 @@ def _get_browseable_jobs_queryset(request):
     if getattr(request.user, "is_authenticated", False):
         requested_slug = _get_requested_organization_slug(request)
         user_organization = get_user_organization(request.user)
-        if requested_slug and requested_slug != getattr(user_organization, "slug", ""):
-            raise NotFound("Organization jobs not found")
-        return JobDescription.objects.filter(
-            is_active=True,
-            organization=user_organization,
-        )
+        user_role = get_user_role(request.user)
+
+        # Recruiters and organization admins stay tenant scoped.
+        if user_role in {
+            UserProfile.Role.RECRUITER,
+            UserProfile.Role.ORG_ADMIN,
+            UserProfile.Role.SUPER_ADMIN,
+        }:
+            if requested_slug and requested_slug != getattr(user_organization, "slug", ""):
+                raise NotFound("Organization jobs not found")
+            return JobDescription.objects.filter(
+                is_active=True,
+                organization=user_organization,
+            )
+
+        # Candidates can browse all active jobs across organizations.
+        jobs = JobDescription.objects.filter(is_active=True)
+        if requested_slug:
+            organization = get_organization_by_slug(requested_slug)
+            if not organization:
+                raise NotFound("Organization jobs not found")
+            jobs = jobs.filter(organization=organization)
+        return jobs
 
     organization = _get_public_listing_organization_or_404(request)
     return JobDescription.objects.filter(
@@ -113,8 +132,7 @@ def _can_candidate_access_job(request, job):
     if not getattr(request.user, "is_authenticated", False):
         return False
 
-    user_organization = get_user_organization(request.user)
-    return bool(user_organization and user_organization.id == job.organization_id)
+    return get_user_role(request.user) == UserProfile.Role.CANDIDATE
 
 
 # CREATE JOB
@@ -159,27 +177,27 @@ def create_job(request):
 # GET ALL JOBS
 @api_view(["GET"])
 def get_jobs(request):
-    from django.db.models import Count, Prefetch
+    from django.db.models import Count
     
     # Prefetch skills and annotate applicant count to avoid N+1 queries
     jobs = _get_browseable_jobs_queryset(request)
     jobs = jobs.prefetch_related(
-        Prefetch('jobskill_set'),
-        Prefetch('applications')
+        "skills",
+        "applications",
     ).annotate(applicant_count=Count('applications', distinct=True))
 
     keyword = (request.query_params.get("keyword") or request.query_params.get("search") or "").strip()
     location = (request.query_params.get("location") or "").strip()
 
     if keyword:
-        # Use .values_list('id') subquery to avoid expensive distinct() on main query
+        # Cross-database safe distinct while filtering through M2M-like relations.
         jobs = jobs.filter(
             Q(title__icontains=keyword) |
             Q(company__icontains=keyword) |
             Q(description__icontains=keyword) |
             Q(requirements__icontains=keyword) |
-            Q(jobskill__skill__icontains=keyword)
-        ).distinct('id')
+            Q(skills__skill__icontains=keyword)
+        ).distinct()
 
     if location:
         jobs = jobs.filter(location__icontains=location)
@@ -444,21 +462,12 @@ def apply_for_job(request, job_id):
         expected_salary = validate_salary(data.get('expected_salary'))
 
         # Create or update candidate profile
-        candidate = Candidate.objects.filter(
-            user=request.user,
-            organization=get_user_organization(request.user),
-        ).first()
+        candidate = Candidate.objects.filter(user=request.user).first()
         created = False
         if not candidate:
-            candidate = Candidate.objects.filter(
-                email=request.user.email,
-                organization=get_user_organization(request.user),
-            ).first()
+            candidate = Candidate.objects.filter(email=request.user.email).first()
 
         target_organization = job.organization
-        current_user_organization = get_user_organization(request.user)
-        if current_user_organization != target_organization:
-            raise AuthorizationError("You can only apply within your organization")
 
         if not candidate:
             candidate = Candidate(
@@ -473,10 +482,6 @@ def apply_for_job(request, job_id):
             created = True
         elif candidate.user_id != request.user.id:
             candidate.user = request.user
-
-        if candidate.organization != target_organization:
-            raise AuthorizationError("Candidate profile belongs to another organization")
-        ensure_candidate_organization(candidate, target_organization)
 
         # Update candidate information if not created
         candidate.email = request.user.email

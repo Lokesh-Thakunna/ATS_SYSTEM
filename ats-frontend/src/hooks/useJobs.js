@@ -2,6 +2,12 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { jobsService } from '../services/jobsService';
 import toast from 'react-hot-toast';
 
+const isCanceledRequest = (err) => (
+  err?.name === 'AbortError' ||
+  err?.code === 'ERR_CANCELED' ||
+  err?.type === 'CANCELED'
+);
+
 export const useJobs = (params = {}) => {
   const serializedParams = JSON.stringify(params);
   const stableParams = useMemo(() => JSON.parse(serializedParams), [serializedParams]);
@@ -16,7 +22,7 @@ export const useJobs = (params = {}) => {
       const data = await jobsService.getJobs(stableParams, config);
       setJobs(Array.isArray(data) ? data : data.results || []);
     } catch (err) {
-      if (err.name !== 'AbortError') {
+      if (!isCanceledRequest(err)) {
         setError(err.message || 'Failed to load jobs');
       }
     } finally {
@@ -55,7 +61,7 @@ export const useJob = (id, params = {}) => {
       const nextJob = await jobsService.getJob(id, stableParams, config);
       setJob(nextJob);
     } catch (err) {
-      if (err.name !== 'AbortError') {
+      if (!isCanceledRequest(err)) {
         setError(err.message || 'Failed to load job');
       }
     } finally {

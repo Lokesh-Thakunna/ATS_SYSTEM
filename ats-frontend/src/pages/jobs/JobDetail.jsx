@@ -13,6 +13,7 @@ import { PageLoader } from '../../components/ui/Spinner';
 import Modal from '../../components/ui/Modal';
 import Spinner from '../../components/ui/Spinner';
 import { useAuth } from '../../context/AuthContext';
+import { normalizeRole, ROLE } from '../../utils/roles';
 
 const splitName = (fullName = '', email = '') => {
   const parts = fullName.trim().split(/\s+/).filter(Boolean);
@@ -228,6 +229,7 @@ const JobDetail = () => {
   );
   const { user } = useAuth();
   const [applyOpen, setApplyOpen] = useState(false);
+  const canApply = normalizeRole(user?.role) === ROLE.CANDIDATE;
   const jobsPath = routeOrganizationSlug
     ? `/careers/${routeOrganizationSlug}`
     : queryOrganizationSlug
@@ -302,7 +304,7 @@ const JobDetail = () => {
           </div>
         )}
 
-        {user?.role === 'candidate' && (
+        {canApply && (
           <div className="pt-2">
             <button onClick={() => setApplyOpen(true)} className="btn-primary w-full justify-center py-3 sm:w-auto">
               <Send size={16} /> Apply Now

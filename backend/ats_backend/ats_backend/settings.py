@@ -164,6 +164,11 @@ AUTH_PASSWORD_VALIDATORS = [
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'filters': {
+        'ignore_broken_pipe': {
+            '()': 'core.logging_filters.IgnoreBrokenPipeFilter',
+        },
+    },
     'formatters': {
         'verbose': {
             'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
@@ -180,6 +185,7 @@ LOGGING = {
             'class': 'logging.FileHandler',
             'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
             'formatter': 'verbose',
+            'filters': ['ignore_broken_pipe'],
         },
         'error_file': {
             'level': 'ERROR',
@@ -197,6 +203,7 @@ LOGGING = {
             'level': 'INFO',
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
+            'filters': ['ignore_broken_pipe'],
         },
     },
     'loggers': {
@@ -217,6 +224,11 @@ LOGGING = {
         },
         'ats_backend': {
             'handlers': ['file', 'error_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.server': {
+            'handlers': ['console', 'file'],
             'level': 'INFO',
             'propagate': False,
         },

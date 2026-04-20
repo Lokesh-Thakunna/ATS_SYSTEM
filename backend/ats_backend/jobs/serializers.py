@@ -31,7 +31,6 @@ class JobDescriptionSerializer(serializers.ModelSerializer):
             "salary_min",
             "salary_max",
             "min_experience",
-            "embedding",
             "skills",
             "skills_list",
             "applicant_count",
@@ -40,12 +39,13 @@ class JobDescriptionSerializer(serializers.ModelSerializer):
             "created_at",
         ]
 
-        read_only_fields = ["embedding", "created_at", "applicant_count"]
+        read_only_fields = ["created_at", "applicant_count"]
 
     def get_skills_list(self, obj):
         # Access prefetched skills from context to avoid N+1 queries
-        if hasattr(obj, '_prefetched_objects_cache'):
-            return [skill.skill for skill in obj.jobskill_set.all()]
+        prefetched = getattr(obj, "_prefetched_objects_cache", {})
+        if "skills" in prefetched:
+            return [skill.skill for skill in obj.skills.all()]
         return [skill.skill for skill in JobSkill.objects.filter(job=obj)]
 
     def get_applicant_count(self, obj):

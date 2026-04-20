@@ -18,25 +18,57 @@ export const jobsService = {
   // Public and tenant-aware job listing endpoint.
   getJobs: async (params = {}, config = {}) => {
     const response = await api.get('/jobs/', { ...config, params });
-    const payload = response.data || {};
+    const payload = response.data ?? {};
+    if (Array.isArray(payload)) {
+      return {
+        count: payload.length,
+        results: payload.map(normalizeJob),
+      };
+    }
+
+    const results = Array.isArray(payload.results)
+      ? payload.results
+      : Array.isArray(payload.data)
+        ? payload.data
+        : [];
+
     return {
       ...payload,
-      results: (payload.results || []).map(normalizeJob),
+      count: payload.count ?? results.length,
+      results: results.map(normalizeJob),
     };
   },
 
   // Single job loader used by public job detail and in-app job detail screens.
   getJob: async (id, params = {}, config = {}) => {
     const response = await api.get(`/jobs/${id}/`, { ...config, params });
-    return normalizeJob(response.data);
+    const payload = response.data ?? {};
+    if (Array.isArray(payload)) {
+      return normalizeJob(payload[0] || {});
+    }
+    return normalizeJob(payload.data || payload);
   },
 
   getRecruiterJobs: async () => {
     const response = await api.get('/jobs/recruiter/mine/');
-    const payload = response.data || {};
+    const payload = response.data ?? {};
+    if (Array.isArray(payload)) {
+      return {
+        count: payload.length,
+        results: payload.map(normalizeJob),
+      };
+    }
+
+    const results = Array.isArray(payload.results)
+      ? payload.results
+      : Array.isArray(payload.data)
+        ? payload.data
+        : [];
+
     return {
       ...payload,
-      results: (payload.results || []).map(normalizeJob),
+      count: payload.count ?? results.length,
+      results: results.map(normalizeJob),
     };
   },
 
