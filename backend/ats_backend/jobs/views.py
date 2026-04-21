@@ -19,6 +19,8 @@ from authentication.permissions import get_user_role
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 from django.db.models import Q, Count
+from django.db import transaction
+from django.db.utils import ProgrammingError, OperationalError
 
 from .models import JobDescription, JobSkill, JobApplication
 from .serializers import JobDescriptionSerializer, AddJobSkillsSerializer, UpdateJobApplicationStatusSerializer
@@ -302,10 +304,22 @@ def update_job(request, job_id):
 def delete_job(request, job_id):
     job = _get_recruiter_owned_job_or_404(request, job_id)
 
-    job.delete()
+    # Prefer hard delete, but gracefully fall back to soft delete when
+    # legacy/missing related tables break Django's cascade collector.
+    try:
+        with transaction.atomic():
+            job.delete()
+    except (ProgrammingError, OperationalError) as error:
+        if "does not exist" not in str(error).lower():
+            raise
+
+        JobApplication.objects.filter(job_id=job.id).delete()
+        JobDescription.objects.filter(id=job.id).update(is_active=False)
+    except Exception:
+        JobApplication.objects.filter(job_id=job.id).delete()
+        JobDescription.objects.filter(id=job.id).update(is_active=False)
 
     return Response(
-        {"message": "Job deleted successfully"},
         status=status.HTTP_204_NO_CONTENT
     )
 
@@ -376,7 +390,7 @@ def get_recruiter_applicants(request):
         for application in applications:
             total_applicants += 1
             candidate = application.candidate
-            resume = get_active_resume_for_candidate(candidate)
+            resume = get_active_resume_for_candidate(candidate, organization=job.organization)
             serialized_applications.append({
                 "id": application.id,
                 "status": application.status,

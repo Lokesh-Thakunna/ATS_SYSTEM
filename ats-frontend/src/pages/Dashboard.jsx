@@ -1,6 +1,6 @@
 import { useAuth } from '../context/AuthContext';
-import CandidateDashboard from './candidate/CandidateDashboard';
-import RecruiterDashboard from './recruiter/RecruiterDashboard';
+import CandidateDashboard from './candidate/Dashboard';
+import RecruiterDashboard from './recruiter/Dashboard';
 import AdminOverview from './admin/AdminOverview';
 import SuperAdminDashboard from './SuperAdmin/Dashboard';
 import { ROLE } from '../utils/roles';

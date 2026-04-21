@@ -14,16 +14,17 @@ from jobs.models import JobApplication
 logger = logging.getLogger(__name__)
 
 
-def get_active_resume_for_candidate(candidate):
+def get_active_resume_for_candidate(candidate, organization=None):
     if not candidate:
         return None
 
-    return (
-        candidate.resumes
-        .filter(is_active=True, organization=candidate.organization)
-        .order_by("-is_primary", "-uploaded_at", "-id")
-        .first()
-    )
+    resumes = candidate.resumes.filter(is_active=True)
+    if organization is not None:
+        preferred = resumes.filter(organization=organization).order_by("-is_primary", "-uploaded_at", "-id").first()
+        if preferred:
+            return preferred
+
+    return resumes.order_by("-is_primary", "-uploaded_at", "-id").first()
 
 
 def build_resume_access_path(resume):
@@ -75,7 +76,6 @@ def can_user_access_resume(user, resume):
         return JobApplication.objects.filter(
             candidate=resume.candidate,
             job__posted_by=user,
-            job__organization=resume.organization,
         ).exists()
 
     return False

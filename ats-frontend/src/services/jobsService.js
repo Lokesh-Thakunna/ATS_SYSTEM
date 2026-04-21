@@ -73,7 +73,7 @@ export const jobsService = {
   },
 
   getRecruiterApplicants: async () => {
-    const response = await api.get('/jobs/recruiter/applicants/');
+    const response = await api.get('/recruiter/applications/');
     return response.data || { count: 0, total_applicants: 0, results: [] };
   },
 

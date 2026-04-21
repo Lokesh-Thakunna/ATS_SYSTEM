@@ -16,8 +16,7 @@ from authentication.views import (
 
 from jobs.views import (
     JobViewSet, job_applications_view, job_candidates_view,
-    public_jobs_view, job_detail_view, create_job_view, update_job_view,
-    delete_job_view, publish_job_view, close_job_view
+    public_jobs_view, job_detail_view, publish_job_view, close_job_view
 )
 
 from candidates.views import (
@@ -121,18 +120,6 @@ urlpatterns = [
     
     # Recruiter endpoints
     path('recruiter/', include([
-        path('jobs/', include([
-            path('create/', create_job_view, name='create_job'),
-            path('<uuid:job_id>/', include([
-                path('', job_detail_view, name='job_detail'),
-                path('update/', update_job_view, name='update_job'),
-                path('delete/', delete_job_view, name='delete_job'),
-                path('publish/', publish_job_view, name='publish_job'),
-                path('close/', close_job_view, name='close_job'),
-                path('applications/', job_applications_view, name='job_applications'),
-                path('candidates/', job_candidates_view, name='job_candidates'),
-            ])),
-        ])),
         path('applications/', include([
             path('<uuid:application_id>/', include([
                 path('', application_detail_view, name='application_detail'),

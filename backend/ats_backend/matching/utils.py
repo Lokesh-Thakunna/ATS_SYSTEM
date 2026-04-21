@@ -260,8 +260,17 @@ def ensure_resume_embedding(candidate, resume=None, application=None):
     return embedding
 
 
-def get_best_resume_for_candidate(candidate):
+def get_best_resume_for_candidate(candidate, organization=None):
     resumes = [resume for resume in safe_all(candidate.resumes) if getattr(resume, "is_active", False)]
+    if organization is not None:
+        scoped_resumes = [
+            resume
+            for resume in resumes
+            if getattr(resume, "organization_id", None) == getattr(organization, "id", None)
+        ]
+        if scoped_resumes:
+            resumes = scoped_resumes
+
     if resumes:
         resumes.sort(
             key=lambda resume: (
@@ -273,7 +282,13 @@ def get_best_resume_for_candidate(candidate):
         )
         return resumes[0]
 
-    queryset = candidate.resumes.filter(is_active=True).prefetch_related(
+    queryset = candidate.resumes.filter(is_active=True)
+    if organization is not None:
+        scoped_queryset = queryset.filter(organization=organization)
+        if scoped_queryset.exists():
+            queryset = scoped_queryset
+
+    queryset = queryset.prefetch_related(
         "skills",
         "education",
         "experiences",
@@ -804,7 +819,7 @@ def rank_job_applications(job, applications, top_n=None):
 
     for application in applications:
         candidate = application.candidate
-        resume = get_best_resume_for_candidate(candidate)
+        resume = get_best_resume_for_candidate(candidate, organization=job.organization)
         scoring = score_candidate_job_fit(
             job,
             candidate=candidate,
